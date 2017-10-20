@@ -45,9 +45,17 @@
             cursor: pointer;
         }
 
+        .tbl_num_series > thead > tr > th{
+            border-bottom: 0;
+        }
+
+        .tbl_num_series > tbody > tr > th{
+            text-align: center;
+        }
+
     </style>
 
-    <form>
+    
 
         <div  class="modal fade references-modal" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel">
             <div class="modal-dialog modal-sm ui-front" role="document">
@@ -79,7 +87,36 @@
                             </div>
                         </div>
 
-                        <div class="frmSeries" style="display: none"></div>
+                        <div class="frmSeries" style="display: none">
+                            <div class="container-fluid">
+                                <table class="tbl_num_series table table-condensed">
+                                    <thead>
+                                        <tr>
+                                            <th>Numero de Series</th>
+                                            <td><div class="num-series"></div></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Articulo</th>
+                                            <td>
+                                                <div class="articulo"></div>
+                                                <input type="hidden" id="codigo_series" />
+                                                <input type="hidden" id="fila_serie" />
+                                            </td>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+
+                                <div class="row form-group">
+                                    <div class="col-md-2">
+                                        <span class="btn btn-primary btnAddSerie">Agregar</span>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <span class="btn btn-default">Cancelar</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -117,12 +154,12 @@
 
             <div class="col-md-4 form-group">
                 {!!Form::label('direccion_envio', 'Direccion de envio')!!}
-                {!!Form::select('direccion_envio', [''=>'- Seleccione -'], null, ['class'=>'form-control input-sm', 'required'])!!}
+                {!!Form::select('direccion_envio', [''=>'- Seleccione -'], null, ['class'=>'form-control input-sm', 'required', 'disabled'])!!}
             </div>
 
             <div class="col-md-4 form-group">
                 {!!Form::label('vendedor', 'Vendedor')!!}
-                {!!Form::select('vendedor', [''=>'- Seleccione -'], null, ['class'=>'form-control input-sm vendedor', 'required'])!!}
+                {!!Form::select('vendedor', [''=>'- Seleccione -'], null, ['class'=>'form-control input-sm vendedor', 'required', 'disabled'])!!}
             </div>
         </div>
 
@@ -173,14 +210,23 @@
 
                     <div class="row form-group">
                         <div class="col-md-8">
-                            <div class="form-group btns">
-                                <a class="btn btn-primary addProduct"s>Agregar Producto</a> 
-                                <a class="btn btn-info notProduct">Agregar Comentario</a> 
+                            <div class="row">
+                                <div class="form-group col-md-12 btns">
+                                    <button class="btn btn-primary addProduct" disabled>Agregar Producto</button> 
+                                    <button class="btn btn-info notProduct" disabled>Agregar Comentario</button>
+                                </div>
+                                
                             </div>
-                            <div class="col-md-6">
-                                {!!Form::label('forma_pago', 'Forma de pago')!!}
-                                {!!Form::select('forma_pago', ['Efectivo'=>'Efectivo', 'Tarjeta de Credito/Debito', 'Cheque'=>'Cheque', 'Transferencia'=>'Transferencia', 'Credito'=>'Credito'], null, ['class'=>'form-control'])!!}
-                            </div>    
+                            <hr>
+                            <div class="row frmFormaPago" style="display: none">
+                                <label class="col-md-12" style="text-align: center;">Forma de pago</label>
+                                <div class="col-md-3 form-group">
+                                    <a class="btn btn-info formaPago">Agregar formaPago</a>
+                                </div>
+                                <div class="inputFormaPago col-md-9">
+                                </div>
+                            </div>
+                                
                         </div>
                         
                         <div class="col-md-4">
@@ -220,7 +266,9 @@
             </div>   
         </div>
 
-    </form>
+    
+
+    
 
 @endsection
 
@@ -244,6 +292,8 @@
                 var cliente = '';
                 var ubicacion = ''; //direccion de envio en cotizacion
 
+            //productos
+                get_series = []
 
             
        
@@ -307,12 +357,11 @@
                         if(vendedor != '' &&  ref != 2){
 
                             mostrar_modal('frmReferencia', 'frmSeries', 'frmComentarios')
-
-                            
                         }
 
                     }
                 }  
+
 
                 if($('#cliente').is(':focus')){
                     $('#cliente').focus()    
@@ -346,6 +395,15 @@
                     $('.'+ocultar1).css('display', 'none')
                     $('.'+ocultar2).css('display', 'none')
 
+                }
+            }
+
+            function ocultar_modal(){
+                if($('.references-modal').hasClass('in') ){
+                    $('.references-modal').modal('hide');
+                    $('.frmComentarios').css('display', 'none')
+                    $('.frmReferencia').css('display', 'none')
+                    $('.frmSeries').css('display', 'none')
                 }
             }
 
@@ -393,6 +451,7 @@
                         }
 
                     }else{
+                        console.log(cliente.length)
                         if(cliente.length > 2){
                             if(!no_autocomplete){
                                 autocomplete_cliente(this)
@@ -444,6 +503,9 @@
                         })
                     },
                     select: function(event, ui){
+                        
+                        
+
                         $('#cliente').val(ui.item.id_cliente)
 
                         llenar_popover('datos_cliente', 'cliente_over', 'popover-cliente', 'Facturado a', ui.item);
@@ -489,6 +551,7 @@
 
                                     //direccion fiscal por defecto
                                     $('#direccion_envio').val(0);
+                                    $('#direccion_envio').removeAttr('disabled')
 
                                     //popover direccion fiscal
                                     llenar_popover('direccion_cliente', 'direccion_over', 'popover-direccion', 'Dirección de envio', fiscal)
@@ -530,6 +593,7 @@
                                     })
 
                                     $('#vendedor').val(agente);
+                                    $('#vendedor').removeAttr('disabled')
                                     
                                     $('.campo-ref').css('display', 'block')
                                     $('.referencias').css('display', 'none')
@@ -539,6 +603,8 @@
 
                         //agregar fila de producto
                         //eliminar_fila(input)
+                        $('.addProduct').removeAttr('disabled')
+                        $('.notProduct').removeAttr('disabled')
                         $('.frmFactura tbody').html('')
                         agregar_fila(num_fila)     
                     }
@@ -720,16 +786,17 @@
             }
 
             function agregar_fila(num){
+                bloquear_campos(num_fila)
                 //agregar una nueva fila
                 load         = '<div class="loading-producto f'+num+'"></div>'+
-                                '<div class="loading-comment f'+num+'"></div>'
+                                '<div class="loading-row f'+num+'"></div>'
                 codigo       =  '<input type="hidden" class="pedir-series f'+num+'" />'+
                                 '<input type="text" class="form-control input-sm f'+num+' codigo" style="width: 100%" />'
                 cantidad     =  '<div class="input-group" >'+
                                     '<input type="text" class="form-control input-sm f'+num+' cantidad" />'+
                                     '<span class="input-group-addon">PZA</span>'+
                                 '</div>';
-                promocion    =   '<select class="form-control f'+num+' promocion " style="width: 100%">'+
+                promocion    =   '<select class="form-control input-sm f'+num+' promocion " style="width: 100%">'+
                                     '<option value="" selected>- Seleccionar -</option>'+
                                 '</select>';
                 precio       =  '<input type="text" class="form-control input-sm f'+num+' precio" style="width:100%" />'
@@ -747,16 +814,16 @@
 
                 $('.frmFactura').append(
                     '<tr>'+
-                        '<td>'+load+'</td>'+
-                        '<td>'+codigo+'</td>'+
-                        '<td>'+cantidad+'</td>'+
-                        '<td>'+promocion+'</td>'+
-                        '<td>'+precio+'</td>'+
-                        '<td>'+moneda+'</td>'+
-                        '<td>'+descuento+'</td>'+
-                        '<td>'+precio_venta+'</td>'+
-                        '<td>'+monto+'</td>'+
-                        '<td>'+accion+'</td>'+
+                        '<td style="width:3%">'+load+'</td>'+
+                        '<td style="width:20%">'+codigo+'</td>'+
+                        '<td style="width:13%">'+cantidad+'</td>'+
+                        '<td style="width:21%">'+promocion+'</td>'+
+                        '<td style="width:9%">'+precio+'</td>'+
+                        '<td style="width:7%">'+moneda+'</td>'+
+                        '<td style="width:7%">'+descuento+'</td>'+
+                        '<td style="width:7%">'+precio_venta+'</td>'+
+                        '<td style="width:10%">'+monto+'</td>'+
+                        '<td style="width:3%">'+accion+'</td>'+
                     '</tr>'
                 )
 
@@ -773,7 +840,7 @@
                     $('.btns').html(
                         '<a class="btn btn-primary addProduct"s>Agregar Producto</a> '
                     )
-                }else if(nFilas == 1 && $('.f'+nFilas+'.codigo').val().length != 0 && $('.f'+nFilas+'.codigo').val().length != 'undefined'){
+                }else if(nFilas == 1 && $('.f'+nFilas+'.codigo').val() != ''){
                     $('.btns').html(
                         '<a class="btn btn-primary addProduct"s>Agregar Producto</a> '
                     )
@@ -784,7 +851,12 @@
                         '<a class="btn btn-primary addProduct"s>Agregar Producto</a> '+
                         '<a class="btn btn-info notProduct">Agregar Comentario</a>'
                     )
-                }    
+                }
+
+                comentarios = []
+                get_series = []
+
+                $('.frmFormaPago').css('display', 'none')
             }
 
             function elimina_comentario(producto, fila, accion){
@@ -841,6 +913,16 @@
 
                 //agregar_fila(num_fila)
             })
+
+            //bloquea la fila al agregar un nuevo campo
+            function bloquear_campos(num){
+                
+                num_blocked = num - 1
+                if(num_blocked > 0){
+                    
+                    $('.f'+num_blocked+'.codigo').attr('disabled', 'disabled')    
+                }
+            }
 
             //agregar fila de producto
             $(document).on('click', '.addProduct', function(){
@@ -918,12 +1000,10 @@
                         })
                     },
                     select: function(event, ui){
-
                         codigo = ui.item.codigo
-
                         duplicado = buscar_duplicado(codigo)
                         
-                        if(duplicado){
+                        if(duplicado != '' && duplicado != f){
                             aux_cantidad = $('.cantidad.'+duplicado).val()
                             cantidad = parseInt(aux_cantidad) + 1
                             $('.cantidad.'+duplicado).val(cantidad)
@@ -935,17 +1015,22 @@
                             )
                             
                             calcular_totales()
+                            formulario_series(duplicado, codigo, cantidad)
+                            
 
                             elimina_fila(input)
+                            
                             agregar_fila(num_fila)
-            
+
+                            
+
                             $('.'+f+'.codigo').html('')
 
                         }else{
                             elimina_comentario(codigo, f, 'cambio_primera')
 
                             $(input).keydown(function(){
-                                $('.loading-comment.'+f).html('')
+                                $('.loading-row.'+f).html('')
                                 $('.loading-producto.'+f).css('display', 'inline-block')
                             })
                             
@@ -963,28 +1048,29 @@
 
             //busca en la tabla si ya existe un valor 
             function buscar_duplicado(codigo){
-                aux_codigo = []
+                
+                aux_codigo = ''
                 row_duplicado = '';
-                $('.frmFactura tbody, tr').each(function(index){
+                $('.frmFactura tbody tr').each(function(index){
                     
                     $(this).children('td').each(function(index2){
-                        switch(index2){
-                            case 1:
-                                //aux_codigo.push($(this).children('input').val());
-                                aux_codigo = $(this).children('input').val();
-                                row = $(this).parents()
+                        if(index2 == 1){
+                            aux_codigo = $(this).children('input[type="text"]').val();
 
-                                if(aux_codigo.indexOf(codigo) != -1){
+                            if(aux_codigo.indexOf(codigo) != -1){
+                                var nFilas = $(".frmFactura tbody tr").length;
                                 
+                                if(nFilas != 1){
                                     row_duplicado = obtener_clase($(this).children('input'))
-                                    
-                                    return false;
                                 }
-                                break;
+                            }
                         }
+                        
                     })
+                    if(row_duplicado != ''){
+                        return false
+                    }
                 })
-                
                 return row_duplicado
             }
 
@@ -1080,6 +1166,8 @@
                                 })
                             
                                 calcular_totales()
+
+                                $('.frmFormaPago').css('display', 'inline-block')
                             }
                         }
 
@@ -1092,50 +1180,27 @@
             //cambiar cantidad
             $(document).on('focus', '.cantidad', function(){
                 f = obtener_clase(this)
+                codigo = $(this).parents('tr').attr('class')
+                series = $('.pedir-series.'+f).val()
 
-                $(this).keyup(function(){
+                $(this).numeric(
+                    {
+                        decimal: false, 
+                        negative: false 
+                    }, 
+                    function() { 
+                        alert("Positive integers only"); 
+                        this.value = ""; 
+                        this.focus(); 
+                    }
+                );
+
+                
+                $(this).keyup(function(e){
+
                     cantidad = $(this).val()
-                    series = $('.pedir-series.'+f).val()
-
+    
                     if(cantidad != ''){
-                        if(series == 'V'){
-                            articulo = $('.'+f+'.codigo').val()
-                            cantidad = $('.'+f+'.cantidad').val()
-                            $('.frmSeries').html(
-                                '<div class="container-fluid">'+
-                                    '<div class="form-group">'+
-                                        '{!!Form::label('cantidad-series', 'Numero de Series')!!}'+
-                                        ' [ '+cantidad+' ] '+
-                                    '</div>'+
-                                    '<div class="form-group">'+
-                                        '<label>Articulo</label> '+articulo+
-                                    '</div>'+
-                                    '<label>Series</label> '+
-                                    '<div class="row form-group">'+
-                                        '<div class="num_series col-md-8 col-md-offset-2"></div>'+
-                                    '</div>'+
-
-                                    '<div class="row form-group">'+
-                                        '<div class="col-md-2">'+
-                                            '<span class="btn btn-primary btnAddComment">Agregar</span>'+
-                                        '</div>'+
-                                        '<div class="col-md-2">'+
-                                            '<span class="btn btn-default">Cancelar</span>'+
-                                        '</div>'+
-                                    '</div>'+
-                                '</div>'
-                            )
-
-                            $('.num_series').html('')
-                            for(i=1; i<=cantidad; i++){
-                                $('.num_series').append(
-                                    '<input type="text" id="serie'+i+'" class="form-control input-sm" /><br>'
-                                )
-                            }
-
-                            mostrar_modal('frmSeries', 'frmComentarios', 'frmReferencia')
-                        }
-                                                
                         if($('.'+f+'.descuento').val() != '' || $('.'+f+'.descuento').val() != 0){    
                         
                             descuento = $('.'+f+'.descuento').val()
@@ -1153,11 +1218,163 @@
                             )
                         }
 
-                        calcular_totales()
+                        calcular_totales()                            
                     }else{
+                        
                         $('.'+f+'.monto').html('$ 0.00')
                     }
                 })
+
+                //permite mostrar el formulario de registro de series al precionar la tecla tab o al dar clic fuera del campo cantidad
+                $(this).blur(function(){
+                    if(series == 'V'){
+                        if(cantidad != ''){
+                            formulario_series(f, codigo, cantidad)    
+                        }
+                        
+                    }
+                })
+            })
+
+            function buscar_series(codigo){
+                serie_encontrada = []
+                $.each(get_series, function(i, s){
+                    if(codigo == s.codigo){
+                        serie_encontrada.push(s)
+                    }
+                })
+
+                return serie_encontrada;
+            }
+            
+            function existe_serie(codigo, serie){
+                existe = false;
+                $.each(get_series, function(i, s){
+                    if(codigo == s.codigo && serie == s.serie){
+                        existe = true
+                    }
+                })
+
+                return existe
+            }
+                      
+            function agregar_fila_serie(inicio, fin, series, valor){
+                for(i=inicio; i<fin; i++){
+                    if(valor == 'series'){
+                        $('.tbl_num_series tbody').append(
+                            '<tr>'+
+                                '<td colspan="2">'+
+                                    '<input type="text" class="form-control input-sm" value="'+series[i].serie+'" />'+
+                                '</td>'+
+                            '</tr>'
+                        )
+                    }else{
+                        $('.tbl_num_series tbody').append(
+                            '<tr>'+
+                                '<td colspan="2">'+
+                                    '<input type="text" class="form-control input-sm" />'+
+                                '</td>'+
+                            '</tr>'
+                        )
+                    }
+                }
+            }
+
+            function formulario_series(f, codigo, cantidad){
+                $('.loading-producto.'+f).css('display', 'none')
+                oculta_comentario(codigo, f)
+
+                serie_shown = []
+                serie_shown = buscar_series(codigo)
+                num_series =  serie_shown.length
+                articulo = $('.'+f+'.codigo').val()
+
+                $('.num-series').html(cantidad)
+                $('.articulo').html(articulo)
+                $('#codigo_series').val(codigo)
+                $('.tbl_num_series tbody').html('')
+
+                if(num_series == 0){
+                    //agregar numero de filas == cantidad
+                    agregar_fila_serie(0, cantidad, serie_shown, 'vacio')
+
+                }else if(num_series == cantidad){
+                    //agregar numero de filas = cantidad == num_series
+                    agregar_fila_serie(0, cantidad, serie_shown, 'series')
+
+                }else if(num_series < cantidad){
+                    agregar_fila_serie(0, num_series, serie_shown, 'series')
+
+                    agregar_fila_serie(num_series, cantidad, serie_shown, 'vacio')
+                    
+                }else if(num_series > cantidad){
+                    //eliminar ultima serie
+                    
+                    eliminado = serie_shown.splice(num_series-1, 1)
+                    
+                    serie_delete = eliminado[0].serie
+                    
+                    $.each(get_series, function(i, s){
+                        
+                        if(serie_delete == s.serie){
+                            get_series.splice(i, 1)
+                        }
+                    }) 
+
+
+                }
+
+                mostrar_modal('frmSeries', 'frmComentarios', 'frmReferencia')
+            }
+
+            $(document).on('click', '.btnAddSerie', function(){
+                producto = $('#codigo_series').val()
+
+                $('.tbl_num_series tbody tr').each(function(index){
+                    
+                    $(this).children('td').each(function(index2){
+                        switch(index2){
+                            case 0:
+                                //aux_codigo.push($(this).children('input').val());
+                                codigo = $('#codigo_series').val()
+                                serie = $(this).children('input').val()
+
+                                add = {
+                                    codigo: codigo,
+                                    serie: serie
+                                }
+
+                                existe = existe_serie(codigo, serie)
+
+                                if(existe != true){
+                                    get_series.push(add)
+                                }
+                                break;
+                        }
+                    })
+                })
+
+                //ocultar modal y limpriar campos
+                ocultar_modal()
+
+                $('#codigo_series').val('')
+                $('.tbl_num_series tbody').html('')
+                serie_shown = []
+
+                
+                div = $('.'+producto).children('td').children('.codigo')
+                f = obtener_clase(div)
+                
+                aux_serie = []
+                aux_serie = buscar_series(producto)
+
+                console.log(aux_serie)
+                $('.loading-producto.'+f).css('display', 'none')
+                $('.loading-row.'+f).html(
+                    '<span class="close showComment showSeries '+f+'" style="padding: 1px 2px">'+
+                        '<i class="glyphicon glyphicon-plus"></i>'+
+                    '</span>'
+                )
             })
 
             //cambiar precio
@@ -1302,19 +1519,14 @@
                 oculta_comentario(producto, f)
 
                 mostrar_modal('frmComentarios', 'frmReferencia', 'frmSeries')
-                
             })    
 
             $(document).on('click', '.btnAddComment', function(){
                 fila = $('#fila').val()
                 comentario = $('.comentario').val()
 
-                //mostrar modal
-                if($('.references-modal').hasClass('in') ){
-                    $('.references-modal').modal('hide');
-                    $('.frmComentarios').css('display', 'none')
-                    
-                }
+                //ocultar modal
+                ocultar_modal()
 
                 $('#fila').val('')
                 $('.comentario').val('')
@@ -1330,7 +1542,7 @@
                 comentarios.push(add)          
 
                 $('.loading-producto.'+fila).css('display', 'none')
-                $('.loading-comment.'+fila).html(
+                $('.loading-row.'+fila).html(
                     '<span class="close showComment '+fila+'" style="padding: 1px 2px">'+
                         '<i class="glyphicon glyphicon-plus"></i>'+
                     '</span>'
@@ -1350,16 +1562,14 @@
                 f = obtener_clase(this);
 
                 producto = $(this).parents('tr').attr('class')
-                
-
-                fila_comment = '<tr class="comment'+producto+'">'
-                                    '<td colspan="10">1</td>'+
-                                '</tr>'
 
                 //inserta nueva fila a la fabla
                 var newRow = $(
                         '<tr class="comment'+producto+'">'+
-                           '<td colspan="10"></td>'+
+                           '<td colspan="10">'+
+                                '<div class="series"></div>'+
+                                '<div class="comments"></div>'+
+                           '</td>'+
                         '</tr>'
                 );
                 newRow.insertAfter($('.'+producto));
@@ -1369,15 +1579,37 @@
                 buscar_en_comentarios(producto, f)
 
                 //agrega los comentarios a la fila que se agrego
-                $('.comment'+producto+' td').html('')
+                $('.comment'+producto+' td .comments').html(
+                    '<label>Comentarios: </label><br>'
+                )
                 $.each(comment_showed, function(i, c){
-                    $('.comment'+producto+' td').append(
+                    $('.comment'+producto+' td .comments').append(
                         '- '+c+'<br>'
                     )
                 })
 
+                //agregar series
+                serie_row = []
+                serie_row = buscar_series(producto)
+                $('.comment'+producto+' td .series').html(
+                    '<label>Series: </label>'
+                )
+                num_series = serie_row.length
+                $.each(serie_row, function(i, s){
+                    if(num_series-1 == i){
+                        $('.comment'+producto+' td .series').append(
+                            s.serie+' '
+                        )    
+                    }else{
+                        $('.comment'+producto+' td .series').append(
+                            s.serie+', '
+                        )
+                    }
+                        
+                })
+
                 //cambiar icono de + a -
-                $('.loading-comment.'+f).html(
+                $('.loading-row.'+f).html(
                     '<span class="close hideComment '+f+'" style="padding: 1px 2px">'+
                         '<i class="glyphicon glyphicon-minus"></i>'+
                     '</span>'
@@ -1388,7 +1620,7 @@
                 $('.comment'+producto).remove()
 
                 //cambiar icono de + a -
-                $('.loading-comment.'+f).html(
+                $('.loading-row.'+f).html(
                     '<span class="close showComment '+f+'" style="padding: 1px 2px">'+
                         '<i class="glyphicon glyphicon-plus"></i>'+
                     '</span>'
@@ -1403,7 +1635,11 @@
             })
             
         //PRUEBAS
-            
+           
+
+
+        //PRUEBAS SIN TERMINAR
+        
         })
     </script>
 @endsection
