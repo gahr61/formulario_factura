@@ -13,8 +13,6 @@
             width: 2em;
         }
 
-
-
         .ui-autocomplete{
             max-height:100px;
             overflow-y:auto;
@@ -54,9 +52,8 @@
         }
 
     </style>
-
     
-
+    {!! Form::token() !!}
         <div  class="modal fade references-modal" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel">
             <div class="modal-dialog modal-sm ui-front" role="document">
                 <div class="modal-content" >
@@ -117,6 +114,17 @@
                                 </div>
                             </div>
                         </div>
+
+                        <div class="frmAutoriza" style="display: none">
+                            <div class="mensaje"></div>
+                            <div class="row">
+                                {!!Form::hidden('fila-producto', null, ['class'=>'fila-producto'])!!}
+                                {!!Form::label('clave_autoriza', 'Clave', ['class'=>'col-md-4'])!!}
+                                <div class="col-md-8">
+                                    {!!Form::password('clave_autoriza', ['class'=>'form-control input-sm clave_autoriza', 'autofocus'])!!}
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -140,7 +148,7 @@
             <div class="col-md-4 form-group">
                 {!!Form::label('dias_credito', 'Dias de credito', ['class'=>'col-md-6'])!!}
                 <div class="col-md-6">
-                    {!!Form::select('dias_credito', [], null, ['class'=>'form-control'])!!}    
+                    {!!Form::select('dias_credito', [], null, ['class'=>'form-control dias_credito'])!!}    
                 </div>
             </div>
         </div>
@@ -178,7 +186,7 @@
                 <button class="btn-referencia">Referencia</button>
                 {!!Form::hidden('ref', 0, ['class'=>'ref-hide'])!!}
                 {!!Form::text('campo-ref', null, ['class'=>'form-control input-sm campo-ref'])!!}
-                {!!Form::select('referencias', [''=>'- Seleccione -'], null, ['class'=>'form-control input-sm referencias', 'required'])!!}
+                {!!Form::select('referencias', [''=>'- Seleccione -'], null, ['class'=>'form-control input-sm referencias'])!!}
             </div>
         </div>
 
@@ -208,55 +216,64 @@
                         </tbody>
                     </table> 
 
-                    <div class="row form-group">
-                        <div class="col-md-8">
-                            <div class="row">
+                    <div class="container-fluid">
+                        <div class="row">
+                            <div class="col-md-8">
                                 <div class="form-group col-md-12 btns">
                                     <button class="btn btn-primary addProduct" disabled>Agregar Producto</button> 
                                     <button class="btn btn-info notProduct" disabled>Agregar Comentario</button>
                                 </div>
-                                
                             </div>
-                            <hr>
-                            <div class="row frmFormaPago" style="display: none">
-                                <label class="col-md-12" style="text-align: center;">Forma de pago</label>
-                                <div class="col-md-3 form-group">
-                                    <a class="btn btn-info formaPago">Agregar formaPago</a>
-                                </div>
-                                <div class="inputFormaPago col-md-9">
-                                </div>
-                            </div>
-                                
                         </div>
-                        
-                        <div class="col-md-4">
-                            <hr>
-                            <div class="operaciones">
-                                <div class="row form-group">
-                                    {!!Form::label('subtotal', 'Subtotal', ['class'=>'col-md-4'])!!}
-                                    <div class="col-md-8">
-                                        <div class="input-group"> 
-                                            <span class="input-group-addon">$</span>
-                                            {!!Form::text('subtotal', '0.00', ['class'=>'form-control input-sm currency', 'data-number-to-fixed'=>'2', 'disabled'])!!}
-                                        </div>
+                        <hr>
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="row frmFormaPago" style="display: none">
+                                    <label class="col-md-12" style="text-align: center;">Forma de pago</label>
+                                    <div class="col-md-3 form-group">
+                                        <a class="btn btn-info formaPago">Agregar formaPago</a>
+                                    </div>
+                                    <div class="inputFormaPago col-md-9">
                                     </div>
                                 </div>
-                                <div class="row form-group">
-                                    {!!Form::label('iva', 'IVA', ['class'=>'col-md-4'])!!}
-                                    <div class="col-md-8">
-                                        <div class="input-group"> 
-                                            <span class="input-group-addon">$</span>
-                                            {!!Form::text('iva', '0.00', ['class'=>'form-control input-sm currency', 'data-number-to-fixed'=>'2', 'disabled'])!!}
+                                    
+                            </div>
+                            
+                            <div class="col-md-4 form-group">
+                                <div class="operaciones">
+                                    <div class="row form-group enganche" style="display: none;">
+                                        {!!Form::label('enganche', 'Enganche', ['class'=>'col-md-4'])!!}
+                                        <div class="col-md-8">
+                                            {!!Form::text('enganche', null, ['class'=>'form-control input-sm currency', 'data-number-to-fixed'=>'2'])!!}
                                         </div>
                                     </div>
-                                </div>
-                                <div class="row form-group">
-                                    {!!Form::label('total', 'Total', ['class'=>'col-md-4'])!!}
-                                    <div class="col-md-8">
-                                        <div class="input-group"> 
-                                            <span class="input-group-addon">$</span>
-                                            {!!Form::text('total', '0.00', ['class'=>'form-control input-sm currency', 'data-number-to-fixed'=>'2', 'disabled'])!!}
-                                        </div>    
+
+                                    <div class="row form-group">
+                                        {!!Form::label('subtotal', 'Subtotal', ['class'=>'col-md-4'])!!}
+                                        <div class="col-md-8">
+                                            <div class="input-group"> 
+                                                <span class="input-group-addon">$</span>
+                                                {!!Form::text('subtotal', '0.00', ['class'=>'form-control input-sm currency', 'data-number-to-fixed'=>'2', 'disabled'])!!}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row form-group">
+                                        {!!Form::label('iva', 'IVA', ['class'=>'col-md-4'])!!}
+                                        <div class="col-md-8">
+                                            <div class="input-group"> 
+                                                <span class="input-group-addon">$</span>
+                                                {!!Form::text('iva', '0.00', ['class'=>'form-control input-sm currency', 'data-number-to-fixed'=>'2', 'disabled'])!!}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row form-group">
+                                        {!!Form::label('total', 'Total', ['class'=>'col-md-4'])!!}
+                                        <div class="col-md-8">
+                                            <div class="input-group"> 
+                                                <span class="input-group-addon">$</span>
+                                                {!!Form::text('total', '0.00', ['class'=>'form-control input-sm currency', 'data-number-to-fixed'=>'2', 'disabled'])!!}
+                                            </div>    
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -265,20 +282,18 @@
                 </fieldset>
             </div>   
         </div>
-
-    
-
-    
-
 @endsection
 
 @section('scripts')
     
     <script src="{{ asset('plugins/jquery-3.2.1/jquery-3.2.1.min.js') }}"></script>
     
+    <script src="{{ asset('plugins/chosen-1.8.6/chosen.jquery.js') }}"></script>
+
     <script src="{{ asset('assets/js/jquery.numeric.js') }}"></script>
     <script src="{{ asset('plugins/jquery-ui-1.12.1.custom/jquery-ui.min.js') }}"></script>
     <script src="{{ asset('ventas/core/bootstrap.min.js') }}"></script>
+    
     <script>
         $(document).ready(function(){
         //DECLARACION DE VARIABLES
@@ -295,8 +310,6 @@
             //productos
                 get_series = []
 
-            
-       
         //FUNCIONES GENERALES
             //funciones cargadas al iniciar la pagina
             $('#cliente').focus()
@@ -356,26 +369,25 @@
                         //buscar referencia
                         if(vendedor != '' &&  ref != 2){
 
-                            mostrar_modal('frmReferencia', 'frmSeries', 'frmComentarios')
+                            mostrar_modal('frmReferencia', 'frmSeries', 'frmComentarios', 'frmAutoriza')
                         }
 
                     }
                 }  
-
 
                 if($('#cliente').is(':focus')){
                     $('#cliente').focus()    
                 }
             });
 
-            function mostrar_modal(mostrar, ocultar1, ocultar2){
-                if(mostrar == 'frmSeries' || mostrar == 'frmComentarios'){
+            function mostrar_modal(mostrar, ocultar1, ocultar2, ocultar3){
+                if(mostrar == 'frmSeries' || mostrar == 'frmComentarios' ){
                     $('.modal-sm').addClass('modal-lg');
                     $('.modal-lg').removeClass('modal-sm');
                     $('.modal-lg').css("width","600px")    
                 }
 
-                if(mostrar == 'frmReferencia'){
+                if(mostrar == 'frmReferencia' || mostrar == 'frmAutoriza'){
                     $('.modal-lg').addClass('modal-sm');
                     $('.modal-sm').removeClass('modal-lg');
                     $('.modal-sm').removeAttr('style')    
@@ -385,6 +397,7 @@
                     $('.'+mostrar).css('display', 'none')
                     $('.'+ocultar1).css('display', 'none')
                     $('.'+ocultar2).css('display', 'none')
+                    $('.'+ocultar3).css('display', 'none')
 
                     $('.references-modal').modal('hide');
 
@@ -394,6 +407,7 @@
                     $('.'+mostrar).css('display', 'block')
                     $('.'+ocultar1).css('display', 'none')
                     $('.'+ocultar2).css('display', 'none')
+                    $('.'+ocultar3).css('display', 'none')
 
                 }
             }
@@ -404,8 +418,22 @@
                     $('.frmComentarios').css('display', 'none')
                     $('.frmReferencia').css('display', 'none')
                     $('.frmSeries').css('display', 'none')
+                    $('.frmAutoriza').css('display', 'none')
                 }
             }
+
+            $('.dias_credito').chosen()
+            
+            $(document).on('change', '.dias_credito', function(){
+                dias = $(this).val()
+
+                if(dias >= 60){
+                    $('.enganche').css('display', 'block')
+                }else{
+                    $('.enganche').css('display', 'none')
+                }
+                
+            })
 
         //FUNCIONES CLIENTE
             //loading cliente
@@ -415,12 +443,17 @@
                 verifica = verificar_tabla_producto()
                 no_autocomplete = false;
                 
-                $(this).keydown(function(e){
+                $(this).keyup(function(e){
                     if(verifica){
                         mensaje = confirm('¿Realmente desea cambiar de usuario?')
                         
                         if(mensaje){
                             verifica = false
+                            
+                            setTimeout(function(){
+                                $('.loading-cliente').html('')
+                                $('.loading-cliente').css('visibility', 'hidden')    
+                            }, 100)
 
                             $('.frmFactura tbody').html('')
                             $('#subtotal').val('0.00')
@@ -443,6 +476,7 @@
                             $('.referencias').css('display', 'none')
                             
                             no_autocomplete = false
+
                         }else{
                             no_autocomplete = true
                             verifica = false
@@ -451,8 +485,8 @@
                         }
 
                     }else{
-                        console.log(cliente.length)
-                        if(cliente.length > 2){
+                        
+                        if(cliente.length >= 2){
                             if(!no_autocomplete){
                                 autocomplete_cliente(this)
                                 $('.loading-cliente').html(
@@ -503,8 +537,10 @@
                         })
                     },
                     select: function(event, ui){
-                        
-                        
+                        setTimeout(function(){
+                            $('.loading-cliente').html('')
+                            $('.loading-cliente').css('visibility', 'hidden')    
+                        }, 1000)
 
                         $('#cliente').val(ui.item.id_cliente)
 
@@ -721,7 +757,6 @@
                                 $('.campo-ref').focus()
                                 $('.referencias').css('display', 'none');
 
-
                             }else{
                                 $('.referencias').html(
                                     '<option value="">- Seleccione -</option>'
@@ -748,8 +783,7 @@
 
                                         }
                                     })
-                                    
-
+                            
                                     //buscar producto
                                 })
                             }
@@ -793,15 +827,16 @@
                 codigo       =  '<input type="hidden" class="pedir-series f'+num+'" />'+
                                 '<input type="text" class="form-control input-sm f'+num+' codigo" style="width: 100%" />'
                 cantidad     =  '<div class="input-group" >'+
-                                    '<input type="text" class="form-control input-sm f'+num+' cantidad" />'+
-                                    '<span class="input-group-addon">PZA</span>'+
+                                    '<input type="text" class="form-control input-sm f'+num+' cantidad" disabled />'+
+                                    '<span class="input-group-addon unidad f'+num+'"></span>'+
                                 '</div>';
-                promocion    =   '<select class="form-control input-sm f'+num+' promocion " style="width: 100%">'+
+                promocion    =   '<select class="form-control input-sm f'+num+' promocion " style="width: 100%" disabled>'+
                                     '<option value="" selected>- Seleccionar -</option>'+
                                 '</select>';
-                precio       =  '<input type="text" class="form-control input-sm f'+num+' precio" style="width:100%" />'
+                precio       =  '<input type="hidden" name="autoriza" class="autoriza f'+num+'" />'+
+                                '<input type="text" class="form-control input-sm f'+num+' precio" style="width:100%" disabled />'
                 moneda       =  '<div class="f'+num+' moneda" style="width:100%"></div>'
-                descuento    =  '<input type="text" class="form-control input-sm f'+num+' descuento" style="width:100%" />'
+                descuento    =  '<input type="text" class="form-control input-sm f'+num+' descuento" style="width:100%" disabled />'
                 precio_venta =  '<div class="f'+num+' precio-venta" style="width:100%"></div>'
                 monto        =  '<div class="f'+num+' monto" style="width:100%"></div>'
                 
@@ -910,8 +945,6 @@
 
             $(document).on('click', '.btnEliminaNotProducto', function(){
                 elimina_fila(this)
-
-                //agregar_fila(num_fila)
             })
 
             //bloquea la fila al agregar un nuevo campo
@@ -1002,7 +1035,8 @@
                     select: function(event, ui){
                         codigo = ui.item.codigo
                         duplicado = buscar_duplicado(codigo)
-                        
+                        requerir_serie = ui.item.serie;
+
                         if(duplicado != '' && duplicado != f){
                             aux_cantidad = $('.cantidad.'+duplicado).val()
                             cantidad = parseInt(aux_cantidad) + 1
@@ -1015,14 +1049,13 @@
                             )
                             
                             calcular_totales()
-                            formulario_series(duplicado, codigo, cantidad)
+                        
+                            if(requerir_serie == 'V')
+                                formulario_series(duplicado, codigo, cantidad)
                             
-
                             elimina_fila(input)
                             
                             agregar_fila(num_fila)
-
-                            
 
                             $('.'+f+'.codigo').html('')
 
@@ -1041,14 +1074,12 @@
                             $('.notProduct').css('display','none')    
                         }
 
-                        
                     }
                 })
             }
 
             //busca en la tabla si ya existe un valor 
             function buscar_duplicado(codigo){
-                
                 aux_codigo = ''
                 row_duplicado = '';
                 $('.frmFactura tbody tr').each(function(index){
@@ -1094,9 +1125,17 @@
                                 }, 3000)
 
                             }else{
+                                //desbloquear campos
+                                $('.'+row+'.cantidad').removeAttr('disabled')
+                                $('.'+row+'.promocion').removeAttr('disabled')
+                                $('.'+row+'.precio').removeAttr('disabled')
+                                $('.'+row+'.descuento').removeAttr('disabled')
+
+
                                 $('.loading-producto.'+row).css('visibility', 'hidden')
 
                                 $('.'+row+'.cantidad').val(p.producto.cantidad)
+                                $('.unidad.'+row).html(p.producto.unidad_venta)
 
                                 $('.pedir-series.'+row).val(p.producto.requerir_serie)
                                 
@@ -1118,6 +1157,8 @@
                                 })
                                 
                                 $('.'+row+'.precio').val(p.producto.precio)
+                                //pueba agregar precio minimo
+                                $('.'+row+'.precio').attr('min', p.producto.precio)
                                 
                                 $('.'+row+'.moneda').html(p.producto.moneda_venta+'/'+p.producto.tipo_cambio)
                                 
@@ -1171,7 +1212,6 @@
                             }
                         }
 
-                        
                     }
 
                 })
@@ -1195,7 +1235,6 @@
                     }
                 );
 
-                
                 $(this).keyup(function(e){
 
                     cantidad = $(this).val()
@@ -1231,11 +1270,11 @@
                         if(cantidad != ''){
                             formulario_series(f, codigo, cantidad)    
                         }
-                        
                     }
                 })
             })
 
+            //funciones de series para formulario de factura de compra
             function buscar_series(codigo){
                 serie_encontrada = []
                 $.each(get_series, function(i, s){
@@ -1264,7 +1303,7 @@
                         $('.tbl_num_series tbody').append(
                             '<tr>'+
                                 '<td colspan="2">'+
-                                    '<input type="text" class="form-control input-sm" value="'+series[i].serie+'" />'+
+                                    '<input type="text" class="form-control input-sm series s'+i+' " value="'+series[i].serie+'" />'+
                                 '</td>'+
                             '</tr>'
                         )
@@ -1272,7 +1311,7 @@
                         $('.tbl_num_series tbody').append(
                             '<tr>'+
                                 '<td colspan="2">'+
-                                    '<input type="text" class="form-control input-sm" />'+
+                                    '<input type="text" class="form-control input-sm series s'+i+' " />'+
                                 '</td>'+
                             '</tr>'
                         )
@@ -1321,10 +1360,9 @@
                         }
                     }) 
 
-
                 }
 
-                mostrar_modal('frmSeries', 'frmComentarios', 'frmReferencia')
+                mostrar_modal('frmSeries', 'frmComentarios', 'frmReferencia', 'frmAutoriza')
             }
 
             $(document).on('click', '.btnAddSerie', function(){
@@ -1361,14 +1399,12 @@
                 $('.tbl_num_series tbody').html('')
                 serie_shown = []
 
-                
                 div = $('.'+producto).children('td').children('.codigo')
                 f = obtener_clase(div)
                 
                 aux_serie = []
                 aux_serie = buscar_series(producto)
 
-                console.log(aux_serie)
                 $('.loading-producto.'+f).css('display', 'none')
                 $('.loading-row.'+f).html(
                     '<span class="close showComment showSeries '+f+'" style="padding: 1px 2px">'+
@@ -1376,6 +1412,7 @@
                     '</span>'
                 )
             })
+            //fin de funciones de series de formulario de factura de compra
 
             //cambiar precio
             $(document).on('focus', '.precio', function(){
@@ -1394,11 +1431,12 @@
 
                 $(this).keyup(function(){
                     precio = $(this).val()
+
                     tipo_cambio = $('.'+f+'.moneda').text()
                     t = tipo_cambio.split('/')
                     tipo_cambio = t[1]
-                    precio_venta = parseFloat(precio * tipo_cambio);
 
+                    precio_venta = parseFloat(precio * tipo_cambio);
 
                     $('.'+f+'.precio-venta').html(
                         '$ '+formatNumber.new(parseFloat(precio_venta).toFixed(2))
@@ -1413,7 +1451,103 @@
 
                     calcular_totales()
                 })
+
+                $(this).blur(function(){
+
+                    precio_minimo = $(this).attr('min')
+
+                    if(precio < precio_minimo && precio.length <= precio_minimo.length){
+                        $('.fila-producto').val(f)
+                        mostrar_modal('frmAutoriza', 'frmSeries', 'frmComentarios', 'frmReferencia')
+                        
+                        setTimeout(function(){
+                            $('.clave_autoriza').val('')
+                            $('.clave_autoriza').focus()    
+                        }, 1000)
+                        
+                    }
+
+                    if(precio == precio_minimo){
+                        $('.fila-producto').val('')
+                        $('.autoriza.'+f).val('')
+                    }
+                })
             })
+
+            autoriza = 0;
+            
+            $(document).on('keydown', '.clave_autoriza', function(e){
+                enter = e.keyCode
+                
+                if(enter == 13){
+                    clave = $(this).val()
+                    autoriza = verifica_autorizacion(clave)
+                    producto_row = $('.fila-producto').val()
+
+                    if(autoriza != undefined){
+                        $('.mensaje').html(
+                            '<div class="alert alert-success alert-dismissible" role="alert">'+
+                                '<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>'+
+                                'La clave de autorización correcta.'+
+                            '</div>'
+                        );
+                        $('.autoriza.'+producto_row).val(autoriza)
+
+                        setTimeout(function(){
+                            ocultar_modal()
+                        },1000)
+                                    
+                    }else{
+
+                        $('.mensaje').html(
+                            '<div class="alert alert-danger alert-dismissible" role="alert">'+
+                                '<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>'+
+                                'La clave de autorización es incorrecta.'+
+                            '</div>'
+                        );
+
+                        setTimeout(function(){
+                            min = $('.'+producto_row+'.precio').attr('min')
+                            $('.'+producto_row+'.precio').val(min)
+                            $('.mensaje').html('')
+                            $('.fila-producto').val('')
+                            $('.clave_autoriza').val('')
+                            
+                            ocultar_modal()
+                        }, 1000)
+
+
+                    }
+                }    
+            })
+            
+            function verifica_autorizacion(clave){
+                token = $('input[name="_token"]').val()
+                
+                var output;
+
+                $.ajax({
+                    url: '{{ route('ventas.autorizacion') }}',
+                    method: 'POST',
+                    datatype: 'json',
+                    data: {
+                        _token: token,
+                        clave: clave
+                    },
+                    async: false,
+                    success: function(cve, textStatus, xhr){
+                        
+                        if(xhr.status == 200){
+                            
+                            output = cve.id_empleado;
+                            return output
+                        }
+                    }
+
+                })
+
+                return output;
+            }
 
             //cambiar descuento
             $(document).on('focus', '.descuento', function(){
@@ -1508,6 +1642,7 @@
             }
 
             //muestra el modal con el formulario para agregar comentarios
+
             $(document).on('click', '.addComment', function(){
                 f = obtener_clase(this)
                 producto = $(this).parents('tr').attr('class')
@@ -1518,7 +1653,7 @@
                 $('.loading-producto.'+f).css('display', 'none')
                 oculta_comentario(producto, f)
 
-                mostrar_modal('frmComentarios', 'frmReferencia', 'frmSeries')
+                mostrar_modal('frmComentarios', 'frmReferencia', 'frmSeries', 'frmAutoriza')
             })    
 
             $(document).on('click', '.btnAddComment', function(){
@@ -1635,11 +1770,40 @@
             })
             
         //PRUEBAS
+            
+            
+
            
-
-
         //PRUEBAS SIN TERMINAR
-        
+
+            num_forma_pago = 0
+            $(document).on('click', '.formaPago', function(){
+                if(num_forma_pago <3){
+                    $('.inputFormaPago').append(
+                        '<div class="row">'+
+                            '<div class="col-md-6 form-group">'+
+                                '<select name="forma_pago" class="form-control input-sm p'+num_forma_pago+'">'+
+                                    '<option value="">- Seleccione -</option>'+
+                                    '<option value="Efectivo">Efectivo</option>'+
+                                    '<option value="Tarjeta">Tarjeta de Credito/Debito</option>'+
+                                    '<option value="Cheque">Cheque</option>'+
+                                    '<option value="Transferencia">Transferencia</option>'+
+                                    '<option value="Credito">Credito</option>'+
+                                '</select>'+
+                            '</div>'+
+
+                            '<div class="col-md-6 form-group">'+
+                                '{!!Form::text('cantidad_pago', null, ['class'=>'form-control input-sm cantidad-pago'])!!}'+
+                            '</div>'+
+                        '</div>'
+                    )
+
+                
+                    num_forma_pago++;
+                }
+            })
+
+            
         })
     </script>
 @endsection
