@@ -58,6 +58,8 @@
             <div class="modal-dialog modal-sm ui-front" role="document">
                 <div class="modal-content" >
                     <div class="modal-body">
+                        <div class="mensaje"></div>
+
                         <div class="list-group frmReferencia" style="display: none">
                             <button type="button" class="list-group-item btnCotizacion" data-dismiss="modal" >Cotización</button>
                             <button type="button" class="list-group-item" data-dismiss="modal">Pedido</button>
@@ -77,7 +79,7 @@
                                         <span class="btn btn-primary btnAddComment">Agregar</span>
                                     </div>
                                     <div class="col-md-2">
-                                        <span class="btn btn-default">Cancelar</span>
+                                        <span class="btn btn-default btnCancelar">Cancelar</span>
                                     </div>
                                 </div>    
                                     
@@ -89,16 +91,24 @@
                                 <table class="tbl_num_series table table-condensed">
                                     <thead>
                                         <tr>
-                                            <th>Numero de Series</th>
-                                            <td><div class="num-series"></div></td>
+                                            <th colspan="3">Numero de Series</th>
+                                            <td colspan="2"><div class="num-series"></div></td>
                                         </tr>
                                         <tr>
-                                            <th>Articulo</th>
-                                            <td>
+                                            <th colspan="3">Articulo</th>
+                                            <td colspan="2">
                                                 <div class="articulo"></div>
                                                 <input type="hidden" id="codigo_series" />
                                                 <input type="hidden" id="fila_serie" />
                                             </td>
+                                        </tr>
+                                        <tr>
+                                            <td rowspan="2" colspan="3">Series</td>
+                                            <td colspan="2" style="text-align: center;">Garantias</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Dias</td>
+                                            <td>Num Copias</td>
                                         </tr>
                                     </thead>
                                     <tbody></tbody>
@@ -106,17 +116,16 @@
 
                                 <div class="row form-group">
                                     <div class="col-md-2">
-                                        <span class="btn btn-primary btnAddSerie">Agregar</span>
+                                        <button class="btn btn-primary btnAddSerie">Agregar</button>
                                     </div>
                                     <div class="col-md-2">
-                                        <span class="btn btn-default">Cancelar</span>
+                                        <button class="btn btn-default btnCancelar">Cancelar</button>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
                         <div class="frmAutoriza" style="display: none">
-                            <div class="mensaje"></div>
                             <div class="row">
                                 {!!Form::hidden('fila-producto', null, ['class'=>'fila-producto'])!!}
                                 {!!Form::label('clave_autoriza', 'Clave', ['class'=>'col-md-4'])!!}
@@ -145,12 +154,22 @@
                     {!!Form::text('fecha', $fecha, ['class'=>'form-control input-sm', 'required'])!!}
                     </div>
             </div>
+        </div>
+
+        <div class="row">
             <div class="col-md-4 form-group">
-                {!!Form::label('dias_credito', 'Dias de credito', ['class'=>'col-md-6'])!!}
-                <div class="col-md-6">
+                {!!Form::label('dias_credito', 'Dias de credito', ['class'=>'col-md-4'])!!}
+                <div class="col-md-8">
                     {!!Form::select('dias_credito', [], null, ['class'=>'form-control dias_credito'])!!}    
                 </div>
             </div>
+
+            <dov class="col-md-4 form-group">
+                {!!Form::label('usoCFDI', 'Uso CFDI', ['class'=>'col-md-4'])!!}
+                <div class="col-md-8">
+                    {!!Form::text('usoCFDI', null, ['class'=>'form-control input-sm', 'disabled'])!!}
+                </div>
+            </dov>
         </div>
 
         <div class="row">
@@ -281,11 +300,11 @@
                     </div>
                 </fieldset>
             </div>   
+            
         </div>
 @endsection
 
-@section('scripts')
-    
+@section('scripts')    
     <script src="{{ asset('plugins/jquery-3.2.1/jquery-3.2.1.min.js') }}"></script>
     
     <script src="{{ asset('plugins/chosen-1.8.6/chosen.jquery.js') }}"></script>
@@ -308,7 +327,7 @@
                 var ubicacion = ''; //direccion de envio en cotizacion
 
             //productos
-                get_series = []
+                get_series = new Array()
 
         //FUNCIONES GENERALES
             //funciones cargadas al iniciar la pagina
@@ -421,6 +440,13 @@
                     $('.frmAutoriza').css('display', 'none')
                 }
             }
+
+            $(document).on('click', '.btnCancelar', function(){
+                $('.comentario').val('')
+                $('.tbl_num_series tbody').html('')
+                ocultar_modal()
+
+            })
 
             $('.dias_credito').chosen()
             
@@ -547,6 +573,14 @@
                         llenar_popover('datos_cliente', 'cliente_over', 'popover-cliente', 'Facturado a', ui.item);
 
                         cliente = ui.item.id_cliente
+
+                        console.log(ui.item.dias_credito)
+                        $('.dias_credito').val(ui.item.dias_credito).trigger('chosen:updated')
+
+                        $('#usoCFDI').removeAttr('disabled')
+                        $('#usoCFDI').val(ui.item.usoCFDI)
+                        
+                        //$('.dias_credito').chosen()
 
                         //busca direcciones
                             $.ajax({
@@ -1268,151 +1302,363 @@
                 $(this).blur(function(){
                     if(series == 'V'){
                         if(cantidad != ''){
-                            formulario_series(f, codigo, cantidad)    
+
+                            disp_series = series_disponibles(codigo)
+                            
+                            if(disp_series < cantidad){
+                                $(this).val(disp_series)
+                                formulario_series_venta(f, codigo, disp_series)
+                            }else{
+                                formulario_series_venta(f, codigo, cantidad)
+                            }
+
+                            
                         }
                     }
                 })
             })
 
             //funciones de series para formulario de factura de compra
-            function buscar_series(codigo){
-                serie_encontrada = []
-                $.each(get_series, function(i, s){
-                    if(codigo == s.codigo){
-                        serie_encontrada.push(s)
-                    }
-                })
-
-                return serie_encontrada;
-            }
-            
-            function existe_serie(codigo, serie){
-                existe = false;
-                $.each(get_series, function(i, s){
-                    if(codigo == s.codigo && serie == s.serie){
-                        existe = true
-                    }
-                })
-
-                return existe
-            }
-                      
-            function agregar_fila_serie(inicio, fin, series, valor){
-                for(i=inicio; i<fin; i++){
-                    if(valor == 'series'){
-                        $('.tbl_num_series tbody').append(
-                            '<tr>'+
-                                '<td colspan="2">'+
-                                    '<input type="text" class="form-control input-sm series s'+i+' " value="'+series[i].serie+'" />'+
-                                '</td>'+
-                            '</tr>'
-                        )
-                    }else{
-                        $('.tbl_num_series tbody').append(
-                            '<tr>'+
-                                '<td colspan="2">'+
-                                    '<input type="text" class="form-control input-sm series s'+i+' " />'+
-                                '</td>'+
-                            '</tr>'
-                        )
-                    }
-                }
-            }
-
-            function formulario_series(f, codigo, cantidad){
-                $('.loading-producto.'+f).css('display', 'none')
-                oculta_comentario(codigo, f)
-
-                serie_shown = []
-                serie_shown = buscar_series(codigo)
-                num_series =  serie_shown.length
-                articulo = $('.'+f+'.codigo').val()
-
-                $('.num-series').html(cantidad)
-                $('.articulo').html(articulo)
-                $('#codigo_series').val(codigo)
-                $('.tbl_num_series tbody').html('')
-
-                if(num_series == 0){
-                    //agregar numero de filas == cantidad
-                    agregar_fila_serie(0, cantidad, serie_shown, 'vacio')
-
-                }else if(num_series == cantidad){
-                    //agregar numero de filas = cantidad == num_series
-                    agregar_fila_serie(0, cantidad, serie_shown, 'series')
-
-                }else if(num_series < cantidad){
-                    agregar_fila_serie(0, num_series, serie_shown, 'series')
-
-                    agregar_fila_serie(num_series, cantidad, serie_shown, 'vacio')
-                    
-                }else if(num_series > cantidad){
-                    //eliminar ultima serie
-                    
-                    eliminado = serie_shown.splice(num_series-1, 1)
-                    
-                    serie_delete = eliminado[0].serie
-                    
+                function buscar_series(codigo){
+                    serie_encontrada = []
                     $.each(get_series, function(i, s){
-                        
-                        if(serie_delete == s.serie){
-                            get_series.splice(i, 1)
-                        }
-                    }) 
-
-                }
-
-                mostrar_modal('frmSeries', 'frmComentarios', 'frmReferencia', 'frmAutoriza')
-            }
-
-            $(document).on('click', '.btnAddSerie', function(){
-                producto = $('#codigo_series').val()
-
-                $('.tbl_num_series tbody tr').each(function(index){
-                    
-                    $(this).children('td').each(function(index2){
-                        switch(index2){
-                            case 0:
-                                //aux_codigo.push($(this).children('input').val());
-                                codigo = $('#codigo_series').val()
-                                serie = $(this).children('input').val()
-
-                                add = {
-                                    codigo: codigo,
-                                    serie: serie
-                                }
-
-                                existe = existe_serie(codigo, serie)
-
-                                if(existe != true){
-                                    get_series.push(add)
-                                }
-                                break;
+                        if(codigo == s.codigo){
+                            serie_encontrada.push(s)
                         }
                     })
+
+                    return serie_encontrada;
+                }
+                
+                function existe_serie(codigo, serie){
+                    existe = false;
+                    $.each(get_series, function(i, s){
+                        if(codigo == s.codigo && serie == s.serie){
+                            existe = true
+                        }
+                    })
+
+                    return existe
+                }
+                          
+                function agregar_fila_serie_compra(inicio, fin, series, valor){
+                    for(i=inicio; i<fin; i++){
+                        if(valor == 'series'){
+                            $('.tbl_num_series tbody').append(
+                                '<tr>'+
+                                    '<td colspan="3">'+
+                                        '<input type="text" class="form-control input-sm series s'+i+' " value="'+series[i].serie+'" />'+
+                                    '</td>'+
+                                    '<td style="width: 25%">'+
+                                        '<input type="text" style="width: 100%" class="form-control input-sm" />'+
+                                    '</td>'+
+                                    '<td style="width: 25%">'+
+                                        '<input type="text" style="width: 100%" class="form-control input-sm" />'+
+                                    '</td>'+
+                                '</tr>'
+                            )
+                        }else{
+                            $('.tbl_num_series tbody').append(
+                                '<tr>'+
+                                    '<td colspan="3">'+
+                                        '<input type="text" class="form-control input-sm series s'+i+' " />'+
+                                    '</td>'+
+                                    '<td style="width: 25%">'+
+                                        '<input type="text" style="width: 100%" class="form-control input-sm" />'+
+                                    '</td>'+
+                                    '<td style="width: 25%">'+
+                                        '<input type="text" style="width: 100%" class="form-control input-sm" />'+
+                                    '</td>'+
+                                '</tr>'
+                            )
+                        }
+                    }
+                }
+
+                function formulario_series(f, codigo, cantidad){
+                    $('.loading-producto.'+f).css('display', 'none')
+                    oculta_comentario(codigo, f)
+
+                    serie_shown = []
+                    serie_shown = buscar_series(codigo)
+                    num_series =  serie_shown.length
+                    articulo = $('.'+f+'.codigo').val()
+
+                    $('.num-series').html(cantidad)
+                    $('.articulo').html(articulo)
+                    $('#codigo_series').val(codigo)
+                    $('.tbl_num_series tbody').html('')
+
+                    if(num_series == 0){
+                        //agregar numero de filas == cantidad
+                        agregar_fila_serie_compra(0, cantidad, serie_shown, 'vacio', codigo)
+
+                    }else if(num_series == cantidad){
+                        //agregar numero de filas = cantidad == num_series
+                        agregar_fila_serie_compra(0, cantidad, serie_shown, 'series', codigo)
+
+                    }else if(num_series < cantidad){
+                        agregar_fila_serie_compra(0, num_series, serie_shown, 'series', codigo)
+
+                        agregar_fila_serie_compra(num_series, cantidad, serie_shown, 'vacio', codigo)
+                        
+                    }else if(num_series > cantidad){
+                        //eliminar ultima serie
+                        
+                        eliminado = serie_shown.splice(num_series-1, 1)
+                        
+                        serie_delete = eliminado[0].serie
+                        
+                        $.each(get_series, function(i, s){
+                            
+                            if(serie_delete == s.serie){
+                                get_series.splice(i, 1)
+                            }
+                        }) 
+
+                    }
+
+                    setTimeout(function(){
+                        $('.series.s0').focus()
+                    }, 500)
+
+                    mostrar_modal('frmSeries', 'frmComentarios', 'frmReferencia', 'frmAutoriza')
+                }
+                
+                add = new Array()
+                
+                $(document).on('click', '.btnAddSerie', function(){
+                    producto = $('#codigo_series').val()
+                    add = {
+                        codigo: '',
+                        serie:'',
+                        garantia_dias: '',
+                        garantia_copias: ''
+                    }        
+
+                    $('.tbl_num_series tbody tr').each(function(index){
+                        cont = 0;
+                        $(this).children('td').each(function(index2){
+                            switch(index2){
+                                case 0:
+                                    //aux_codigo.push($(this).children('input').val());
+                                    codigo = $('#codigo_series').val()
+                                    if($(this).children('select')){
+                                        serie = $(this).children('select').val()
+                                    
+                                        add.codigo = codigo
+                                        add.serie = serie
+                                    }else{
+                                        return false   
+                                    }    
+                                    break
+                                    
+
+                                case 1:
+                                    garantia_dias = $(this).children('input').val()
+                                    add.garantia_dias = garantia_dias
+                                    break
+
+                                case 2:
+                                    garantia_copias = $(this).children('input').val()
+                                    add.garantia_copias = garantia_copias
+                                    break
+
+                            }
+                            
+                        })
+
+                        existe = existe_serie(codigo, serie)
+                        if(existe != true){
+                            if(add.serie != undefined){
+                                get_series.push(add)
+                                add = []
+                            }
+                                
+                        }else{
+                            cont++
+                            get_series = []
+                        }
+                    })
+
+                    if(cont != 0){
+                        
+                        $('.mensaje').html(
+                            '<div class="alert alert-danger alert-dismissible" role="alert">'+
+                                '<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>'+
+                                'Los campos no pueden contener el mismo numero de serie, intente de nuevo.'+
+                            '</div>'
+                        )
+                        setTimeout(function(){
+                            $('.mensaje').html('')
+                        }, 2000)
+                            
+                    }else{
+                        $('.mensaje').html('')
+                        //ocultar modal y limpriar campos
+                        ocultar_modal()
+
+                        $('#codigo_series').val('')
+                        $('.tbl_num_series tbody').html('')
+                        serie_shown = []
+
+                        div = $('.'+producto).children('td').children('.codigo')
+                        f = obtener_clase(div)
+                        
+                        aux_serie = []
+                        aux_serie = buscar_series(producto)
+
+                        $('.loading-producto.'+f).css('display', 'none')
+                        $('.loading-row.'+f).html(
+                            '<span class="close showComment showSeries '+f+'" style="padding: 1px 2px">'+
+                                '<i class="glyphicon glyphicon-plus"></i>'+
+                            '</span>'
+                        )
+
+                        $('.'+f+'.promocion').focus()
+                    }    
+                })
+            //fin de funciones de series de formulario de factura de compra
+
+            function series_disponibles(codigo){
+                var disponibles;
+
+                $.ajax({
+                    url: '{{ route('ventas.series_disponibles')}}',
+                    method: 'GET',
+                    data:{
+                        producto : codigo
+                    },
+                    async: false,
+                    success: function(s){
+                        disponibles = s
+                        
+                    }
                 })
 
-                //ocultar modal y limpriar campos
-                ocultar_modal()
+                return disponibles
+            }
 
-                $('#codigo_series').val('')
-                $('.tbl_num_series tbody').html('')
-                serie_shown = []
+            //funciones para formulario de ventas
+                function formulario_series_venta(f, codigo, cantidad){
+                    $('.loading-producto.'+f).css('display', 'none')
+                    oculta_comentario(codigo, f)
 
-                div = $('.'+producto).children('td').children('.codigo')
-                f = obtener_clase(div)
-                
-                aux_serie = []
-                aux_serie = buscar_series(producto)
+                    serie_shown = []
+                    serie_shown = buscar_series(codigo)
+                    num_series =  serie_shown.length
+                    articulo = $('.'+f+'.codigo').val()
 
-                $('.loading-producto.'+f).css('display', 'none')
-                $('.loading-row.'+f).html(
-                    '<span class="close showComment showSeries '+f+'" style="padding: 1px 2px">'+
-                        '<i class="glyphicon glyphicon-plus"></i>'+
-                    '</span>'
-                )
-            })
-            //fin de funciones de series de formulario de factura de compra
+                    $('.num-series').html(cantidad)
+                    $('.articulo').html(articulo)
+                    $('#codigo_series').val(codigo)
+                    $('.tbl_num_series tbody').html('')
+
+                    if(num_series == 0){
+                        //agregar numero de filas == cantidad
+                        agregar_fila_series_venta(0, cantidad, serie_shown, 'vacio', codigo)
+
+                    }else if(num_series == cantidad){
+                        //agregar numero de filas = cantidad == num_series
+                        agregar_fila_series_venta(0, cantidad, serie_shown, 'series', codigo)
+
+                    }else if(num_series < cantidad){
+                        agregar_fila_series_venta(0, num_series, serie_shown, 'series', codigo)
+
+                        agregar_fila_series_venta(num_series, cantidad, serie_shown, 'vacio', codigo)
+                        
+                    }else if(num_series > cantidad){
+                        //eliminar ultima serie
+                        
+                        eliminado = serie_shown.splice(num_series-1, 1)
+                        
+                        serie_delete = eliminado[0].serie
+                        
+                        $.each(get_series, function(i, s){
+                            
+                            if(serie_delete == s.serie){
+                                get_series.splice(i, 1)
+                            }
+                        }) 
+
+                    }
+
+                    setTimeout(function(){
+                        $('.series.s0').focus()
+                    }, 500)
+
+                    mostrar_modal('frmSeries', 'frmComentarios', 'frmReferencia', 'frmAutoriza')
+                }
+
+                function agregar_fila_series_venta(inicio, fin, series, valor, codigo){
+                    for(i=inicio; i<fin; i++){
+                        if(valor == 'series'){
+                            $('.tbl_num_series tbody').append(
+                                '<tr>'+
+                                    '<td colspan="3">'+
+                                        '<input type="text" class="form-control input-sm series s'+i+' " value="'+series[i].serie+'" disabled/>'+
+                                    '</td>'+
+                                    '<td style="width: 25%">'+
+                                        '<input type="text" style="width: 100%" class="form-control input-sm" value="'+series[i].garantia_dias+'" />'+
+                                    '</td>'+
+                                    '<td style="width: 25%">'+
+                                        '<input type="text" style="width: 100%" class="form-control input-sm" value="'+series[i].garantia_copias+'" />'+
+                                    '</td>'+
+                                '</tr>'
+                            )
+                        }else{
+                            $('.tbl_num_series tbody').append(
+                                '<tr>'+
+                                    '<td colspan="3">'+
+                                        '<select class="form-control input-sm series s'+i+'" >'+
+                                        '</select>'+
+                                    '</td>'+
+                                    '<td style="width: 25%">'+
+                                        '<input type="text" style="width: 100%" class="form-control input-sm" />'+
+                                    '</td>'+
+                                    '<td style="width: 25%">'+
+                                        '<input type="text" style="width: 100%" class="form-control input-sm" />'+
+                                    '</td>'+
+                                '</tr>'
+                            )
+
+                            
+                            //$('.series.s'+i).chosen()
+                        }
+                    }
+
+                    obtener_series(codigo)
+                }
+
+                function obtener_series(codigo){
+                    $.ajax({
+                        url: '{!! route('ventas.obtener_series') !!}',
+                        method: 'GET',
+                        datatype: 'json',
+                        data: {
+                            producto : codigo
+                        },
+                        success: function(s, textStatus, xhr){
+                            if(xhr.status == 200){
+                                $('.series').html(
+                                    '<option>- Seleccione -</option>'
+                                )
+
+                                $.each(s, function(i, v){
+                                    $('.series').append(
+                                        '<option>'+v.serie+'</option>'
+                                    )    
+                                })
+                            }else{
+                                obtener_series(codigo)
+                                
+                            }
+                        }
+
+                    })
+                }
+
+            //fin de formulario de ventas
 
             //cambiar precio
             $(document).on('focus', '.precio', function(){
@@ -1648,10 +1894,14 @@
                 producto = $(this).parents('tr').attr('class')
 
                 $('#fila').val(f);
-                $('.comentario').focus()
+                //$('.comentario').focus()
 
                 $('.loading-producto.'+f).css('display', 'none')
                 oculta_comentario(producto, f)
+
+                setTimeout(function(){
+                    $('.comentario').focus()
+                }, 500)
 
                 mostrar_modal('frmComentarios', 'frmReferencia', 'frmSeries', 'frmAutoriza')
             })    
@@ -1770,6 +2020,38 @@
             })
             
         //PRUEBAS
+            //functioned de series para factura de venta
+            /*
+            $(document).on('focus', '.series', function(){
+                s = obtener_clase(this)
+                
+                autocomplete_series(this, s)
+            })
+            function autocomplete_series(input, s){
+                
+                codigo = $('#codigo_series').val()
+
+                $(input).autocomplete({
+                    source: function(request, response){
+                        $.ajax({
+                            url: '{!! route('ventas.obtener_series') !!}',
+                            method: 'GET',
+                            datatype: 'json',
+                            data: {
+                                serie    : request.term,
+                                producto : codigo
+                            },
+                            success: function(s, textStatus, xhr){
+                               response(s)
+                            }
+
+                        })
+                    },
+                    select: function(event, ui){
+                    }
+                })
+            }
+            */
             
             
 
