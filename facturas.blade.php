@@ -1,6 +1,7 @@
 @extends('layouts.ventas')
 
 @section('content')
+    
     <style>
         .loading, .no-result, .btn-referencia, .referencias, .campo-ref{
             display: none;
@@ -54,6 +55,11 @@
     </style>
     
     {!! Form::token() !!}
+        {!!Form::hidden('producto_series', $series, ['class'=>'producto-series'])!!}
+        {!!Form::hidden('requerir_pagos', $pagos, ['class'=>'requerir-pagos'])!!}
+        {!!Form::hidden('accion_inventario', $inventario, ['class'=>'accion-inventario'])!!}
+        {!!Form::hidden('cargo', $cargo, ['class'=>'cargo'])!!}
+
         <div  class="modal fade references-modal" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel">
             <div class="modal-dialog modal-sm ui-front" role="document">
                 <div class="modal-content" >
@@ -61,9 +67,24 @@
                         <div class="mensaje"></div>
 
                         <div class="list-group frmReferencia" style="display: none">
-                            <button type="button" class="list-group-item btnCotizacion" data-dismiss="modal" >Cotización</button>
-                            <button type="button" class="list-group-item" data-dismiss="modal">Pedido</button>
-                            <button type="button" class="list-group-item" data-dismiss="modal">Orden Facturación</button>
+
+                            @foreach($referencias as $ref)
+                                @if($ref == 'OC')
+                                    <button type="button" class="list-group-item" data-dismiss="modal">Orden Compra</button>
+                                @endif
+                                @if($ref == 'CFDI')
+                                    <button type="button" class="list-group-item" data-dismiss="modal">Factura</button>
+                                @endif
+                                @if($ref == 'C')
+                                    <button type="button" class="list-group-item btnCotizacion" data-dismiss="modal" >Cotización</button>
+                                @endif
+                                @if($ref == 'OF')
+                                    <button type="button" class="list-group-item" data-dismiss="modal">Orden Facturación</button>
+                                @endif
+                                @if($ref == 'P')
+                                    <button type="button" class="list-group-item" data-dismiss="modal">Pedido</button>
+                                @endif
+                            @endforeach
                         </div>
 
                         <div class="frmComentarios" style="display: none">
@@ -138,12 +159,17 @@
                 </div>
             </div>
         </div>
-
+        
         <div class="row">
             <div class="col-md-4  form-group">
+
                 {!!Form::label('folio', 'Folio', ['class'=>'col-md-4'])!!}
                 <div class="col-md-8">
-                    {!!Form::text('folio', $consecutivo + 1, ['class'=>'form-control input-sm', 'required'])!!}    
+                    @if($consecutivo == '')
+                        {!!Form::text('folio', null, ['class'=>'form-control input-sm', 'required', 'autofocus'])!!}    
+                    @else
+                        {!!Form::text('folio', $consecutivo + 1, ['class'=>'form-control input-sm', 'required'])!!}
+                    @endif
                 </div>
                 
             </div>
@@ -174,9 +200,16 @@
 
         <div class="row">
             <div class="col-md-4 form-group">
-                {!!Form::label('cliente', 'Cliente')!!}
-                <div class="loading-cliente"></div>
-                {!!Form::text('cliente', null, ['class'=>'form-control input-sm cliente', 'required', 'autofocus'])!!}
+                @if($persona == 'C')
+                    {!!Form::label('cliente', 'Cliente')!!}
+                    <div class="loading-cliente"></div>
+                    {!!Form::text('cliente', null, ['class'=>'form-control input-sm cliente', 'required', 'autofocus'])!!}
+
+                @elseif($persona == 'P')
+                    {!!Form::label('proveedor', 'Proveedor')!!}
+                    <div class="loading-cliente"></div>
+                    {!!Form::text('Proveedor', null, ['class'=>'form-control input-sm proveedor', 'required'])!!}
+                @endif
             </div>
 
             <div class="col-md-4 form-group">
@@ -215,7 +248,7 @@
             <div class="col-md-12  form-group">
                 <fieldset>
                     <legend>Productos</legend>
-                    
+                    <div class="mensajeProductos"></div>
                     <table class="table table-condensed frmFactura">
                         <thead>
                             <tr>
@@ -391,8 +424,13 @@
                             mostrar_modal('frmReferencia', 'frmSeries', 'frmComentarios', 'frmAutoriza')
                         }
 
+                    }else{
+                        ocultar_modal()
                     }
-                }  
+                }
+
+
+
 
                 if($('#cliente').is(':focus')){
                     $('#cliente').focus()    
@@ -403,13 +441,29 @@
                 if(mostrar == 'frmSeries' || mostrar == 'frmComentarios' ){
                     $('.modal-sm').addClass('modal-lg');
                     $('.modal-lg').removeClass('modal-sm');
-                    $('.modal-lg').css("width","600px")    
+                    $('.modal-lg').css("width","600px")
+                    
+                    //evita que el modal se cierre con esc o al dar clic fuera
+                    $('.references-modal').attr('data-backdrop', 'static')
+                    $('.references-modal').attr('data-keyboard', 'false')
+
+                }
+
+                if(mostrar == 'frmAutoriza'){
+                    //evita que el modal se cierre con esc o al dar clic fuera
+                    $('.references-modal').attr('data-backdrop', 'static')
+                    $('.references-modal').attr('data-keyboard', 'false')
+                }
+
+                if(mostrar == 'frmReferencia'){
+                    //evita que el modal se cierre con esc o al dar clic fuera
+                    $('.references-modal').attr('data-keyboard', 'true')
                 }
 
                 if(mostrar == 'frmReferencia' || mostrar == 'frmAutoriza'){
                     $('.modal-lg').addClass('modal-sm');
                     $('.modal-sm').removeClass('modal-lg');
-                    $('.modal-sm').removeAttr('style')    
+                    $('.modal-sm').removeAttr('style')
                 }
                 
                 if($('.references-modal').hasClass('in') ){
@@ -438,6 +492,9 @@
                     $('.frmReferencia').css('display', 'none')
                     $('.frmSeries').css('display', 'none')
                     $('.frmAutoriza').css('display', 'none')
+
+                    $('.references-modal').removeAttr('data-backdrop')
+                    $('.references-modal').removeAttr('data-keyboard')
                 }
             }
 
@@ -449,6 +506,7 @@
             })
 
             $('.dias_credito').chosen()
+            $('#dias_credito_chosen').css('width', '100%')
             
             $(document).on('change', '.dias_credito', function(){
                 dias = $(this).val()
@@ -574,7 +632,6 @@
 
                         cliente = ui.item.id_cliente
 
-                        console.log(ui.item.dias_credito)
                         $('.dias_credito').val(ui.item.dias_credito).trigger('chosen:updated')
 
                         $('#usoCFDI').removeAttr('disabled')
@@ -1017,7 +1074,7 @@
                 $(this).keyup(function(){
                     fila_loading = '.'+f;
 
-                    if($(this).val().length > 1){
+                    if($(this).val().length > 2){
                         autocomplete_productos(this, f) 
 
                         $('.loading-producto'+fila_loading).html(
@@ -1033,6 +1090,7 @@
                 })
             })
 
+            var producto_series = $('.producto-series').val()
             //autocomplete catalogo de productos
             function autocomplete_productos(input, f){
                 $(input).autocomplete({
@@ -1084,9 +1142,12 @@
                             
                             calcular_totales()
                         
-                            if(requerir_serie == 'V')
-                                formulario_series(duplicado, codigo, cantidad)
-                            
+                            if(requerir_serie == 'V' && producto_series == 'S')
+                                formulario_series_venta(duplicado, codigo, cantidad)
+
+                            else if(requerir_serie == 'V' && producto_series == 'I')
+                                formulario_series_compra(duplicado, codigo, cantidad)
+
                             elimina_fila(input)
                             
                             agregar_fila(num_fila)
@@ -1122,13 +1183,16 @@
                         if(index2 == 1){
                             aux_codigo = $(this).children('input[type="text"]').val();
 
-                            if(aux_codigo.indexOf(codigo) != -1){
-                                var nFilas = $(".frmFactura tbody tr").length;
-                                
-                                if(nFilas != 1){
-                                    row_duplicado = obtener_clase($(this).children('input'))
+                            if(aux_codigo != undefined){
+                                if(aux_codigo.indexOf(codigo) != -1){
+                                    var nFilas = $(".frmFactura tbody tr").length;
+                                    
+                                    if(nFilas != 1){
+                                        row_duplicado = obtener_clase($(this).children('input'))
+                                    }
                                 }
                             }
+                                
                         }
                         
                     })
@@ -1141,6 +1205,7 @@
 
             //busca productos seleccionado
             function busca_producto(url, codigo, row){
+
                 $.ajax({
                     url: url,
                     method: 'GET',
@@ -1159,6 +1224,7 @@
                                 }, 3000)
 
                             }else{
+
                                 //desbloquear campos
                                 $('.'+row+'.cantidad').removeAttr('disabled')
                                 $('.'+row+'.promocion').removeAttr('disabled')
@@ -1252,10 +1318,43 @@
             }
 
             //cambiar cantidad
-            $(document).on('focus', '.cantidad', function(){
+            
+            $(document).on('blur', '.cantidad', function(){
+                f = obtener_clase(this)
+                series = $('.pedir-series.'+f).val()
+                cantidad = $(this).val()
+                codigo = $('.cantidad').parents('tr').attr('class')
+
+                if(series == 'V' && producto_series == 'S'){
+                    if(cantidad != 0){
+
+                        disp_series = series_disponibles(codigo)
+
+                        if(parseInt(disp_series) < parseInt(cantidad)){
+                            alert('El número de series disponibles es menor al el de productos que está ingresando. Se mostraran únicamente las series disponibles.')
+                        
+                            $(this).val(disp_series)
+
+                            formulario_series_venta(f, codigo, disp_series)
+                        }else{
+
+
+                            formulario_series_venta(f, codigo, cantidad)
+                        }
+
+                        return false
+                    }
+                
+                }else if(series == 'V' && producto_series == 'I'){
+                    formulario_series_compra(f, codigo, cantidad)
+                }
+
+            })
+            
+            $(document).on('focus', '.cantidad', function(e){
+                e.preventDefault();
                 f = obtener_clase(this)
                 codigo = $(this).parents('tr').attr('class')
-                series = $('.pedir-series.'+f).val()
 
                 $(this).numeric(
                     {
@@ -1295,25 +1394,6 @@
                     }else{
                         
                         $('.'+f+'.monto').html('$ 0.00')
-                    }
-                })
-
-                //permite mostrar el formulario de registro de series al precionar la tecla tab o al dar clic fuera del campo cantidad
-                $(this).blur(function(){
-                    if(series == 'V'){
-                        if(cantidad != ''){
-
-                            disp_series = series_disponibles(codigo)
-                            
-                            if(disp_series < cantidad){
-                                $(this).val(disp_series)
-                                formulario_series_venta(f, codigo, disp_series)
-                            }else{
-                                formulario_series_venta(f, codigo, cantidad)
-                            }
-
-                            
-                        }
                     }
                 })
             })
@@ -1375,7 +1455,7 @@
                     }
                 }
 
-                function formulario_series(f, codigo, cantidad){
+                function formulario_series_compra(f, codigo, cantidad){
                     $('.loading-producto.'+f).css('display', 'none')
                     oculta_comentario(codigo, f)
 
@@ -1539,9 +1619,11 @@
                 return disponibles
             }
 
+
             //funciones para formulario de ventas
                 function formulario_series_venta(f, codigo, cantidad){
-                    $('.loading-producto.'+f).css('display', 'none')
+
+                    $('.loading-producto').css('display', 'none')
                     oculta_comentario(codigo, f)
 
                     serie_shown = []
@@ -1591,6 +1673,8 @@
                 }
 
                 function agregar_fila_series_venta(inicio, fin, series, valor, codigo){
+                    garantias = obtener_garantias(codigo);
+
                     for(i=inicio; i<fin; i++){
                         if(valor == 'series'){
                             $('.tbl_num_series tbody').append(
@@ -1614,10 +1698,10 @@
                                         '</select>'+
                                     '</td>'+
                                     '<td style="width: 25%">'+
-                                        '<input type="text" style="width: 100%" class="form-control input-sm" />'+
+                                        '<input type="text" style="width: 100%" class="form-control input-sm" value="'+garantias.dias+'" />'+
                                     '</td>'+
                                     '<td style="width: 25%">'+
-                                        '<input type="text" style="width: 100%" class="form-control input-sm" />'+
+                                        '<input type="text" style="width: 100%" class="form-control input-sm" value="'+garantias.copiado+'" />'+
                                     '</td>'+
                                 '</tr>'
                             )
@@ -1704,12 +1788,14 @@
 
                     if(precio < precio_minimo && precio.length <= precio_minimo.length){
                         $('.fila-producto').val(f)
+                        $('.mensaje').html('')
+                        
                         mostrar_modal('frmAutoriza', 'frmSeries', 'frmComentarios', 'frmReferencia')
                         
                         setTimeout(function(){
                             $('.clave_autoriza').val('')
                             $('.clave_autoriza').focus()    
-                        }, 1000)
+                        }, 500)
                         
                     }
 
@@ -1739,12 +1825,18 @@
                         );
                         $('.autoriza.'+producto_row).val(autoriza)
 
+                        nvo_min = $('.'+producto_row+'.precio').val()
+                        $('.'+producto_row+'.precio').attr('min', nvo_min)
+
                         setTimeout(function(){
                             ocultar_modal()
+                            $('.'+producto_row+'.descuento').focus()
                         },1000)
                                     
                     }else{
-
+                        
+                        descuento = $('.'+producto_row+'.descuento').val()
+                        
                         $('.mensaje').html(
                             '<div class="alert alert-danger alert-dismissible" role="alert">'+
                                 '<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>'+
@@ -1758,7 +1850,22 @@
                             $('.mensaje').html('')
                             $('.fila-producto').val('')
                             $('.clave_autoriza').val('')
+
                             
+                            precio_venta = parseFloat(min * tipo_cambio);
+
+                            $('.'+producto_row+'.precio-venta').html(
+                                '$ '+formatNumber.new(parseFloat(precio_venta).toFixed(2))
+                            )
+
+                            monto = obtener_monto(descuento, producto_row)
+
+                            $('.'+f+'.monto').html(
+                                '$ '+formatNumber.new(parseFloat(monto).toFixed(2))
+                            )
+
+                            calcular_totales()
+
                             ocultar_modal()
                         }, 1000)
 
@@ -1952,8 +2059,8 @@
                 var newRow = $(
                         '<tr class="comment'+producto+'">'+
                            '<td colspan="10">'+
-                                '<div class="series"></div>'+
-                                '<div class="comments"></div>'+
+                                '<div class="comments col-md-6"></div>'+
+                                '<div class="show-series '+f+' col-md-6"></div>'+
                            '</td>'+
                         '</tr>'
                 );
@@ -1976,21 +2083,39 @@
                 //agregar series
                 serie_row = []
                 serie_row = buscar_series(producto)
-                $('.comment'+producto+' td .series').html(
-                    '<label>Series: </label>'
+                $('.show-series.'+f).html(
+                    '<table class="tblSeries '+f+' table">'+
+                        '<tr>'+
+                            '<th>Series</th>'+
+                            '<th>Garantia Dias</th>'+
+                            '<th>GarantiaCopias</th>'+
+                            '<td>'+
+                                '<a data-row="'+f+'" data-producto="'+producto+'" class="btnEditarSeries">Editar</a>'+
+                            '</td>'+
+                        '</tr>'+
+                    '</table>'
                 )
                 num_series = serie_row.length
                 $.each(serie_row, function(i, s){
-                    if(num_series-1 == i){
+                    //if(num_series-1 == i){
+                        $('.tblSeries.'+f).append(
+                            '<tr>'+
+                                '<td>'+s.serie+'</td>'+
+                                '<td>'+s.garantia_dias+'</td>'+
+                                '<td>'+s.garantia_copias+'</td>'+
+                            '</tr>'
+                        )
+                     /*
                         $('.comment'+producto+' td .series').append(
-                            s.serie+' '
+                            s.serie+' <b>Garantias en Dias</b>'+s.garantia_dias+' <b>Garantia en Copias</b>'+s.garantia_copias
                         )    
                     }else{
                         $('.comment'+producto+' td .series').append(
-                            s.serie+', '
+                            s.serie+' <b>Garantias en Dias</b>'+s.garantia_dias+' <b>Garantia en Copias</b>'+s.garantia_copias+' || '
                         )
-                    }
-                        
+                    
+                    }*/
+                       
                 })
 
                 //cambiar icono de + a -
@@ -2020,44 +2145,62 @@
             })
             
         //PRUEBAS
-            //functioned de series para factura de venta
-            /*
-            $(document).on('focus', '.series', function(){
-                s = obtener_clase(this)
-                
-                autocomplete_series(this, s)
-            })
-            function autocomplete_series(input, s){
-                
-                codigo = $('#codigo_series').val()
+            garantias = []
+            function obtener_garantias(codigo){
+                var garantia = {
+                    dias: 0,
+                    copiado: 0
+                }
 
-                $(input).autocomplete({
-                    source: function(request, response){
-                        $.ajax({
-                            url: '{!! route('ventas.obtener_series') !!}',
-                            method: 'GET',
-                            datatype: 'json',
-                            data: {
-                                serie    : request.term,
-                                producto : codigo
-                            },
-                            success: function(s, textStatus, xhr){
-                               response(s)
+                $.ajax({
+                    url: '{{ route('ventas.obtener-garantias') }}',
+                    datatype: 'json',
+                    method: 'GET',
+                    data:{
+                        codigo: codigo
+                    },
+                    async: false,
+                    success: function(g){
+                        if(g.garantia_tiempo.toLowerCase().indexOf('meses') != -1 || g.garantia_tiempo.toLowerCase().indexOf('mes')){
+                            meses = g.garantia_tiempo.split(' ')
+                            copiado = g.garantia_copiado.split(' ')
+
+                            garantia = {
+                                dias: meses[0] * 30,
+                                copiado: copiado[0]
                             }
 
-                        })
-                    },
-                    select: function(event, ui){
+                        }
+
+                        if(g.garantia_tiempo.toLowerCase().indexOf('año') != -1 || g.garantia_tiempo.toLowerCase().indexOf('años') != -1){
+                            anio = g.garantia_tiempo.split(' ')
+                            copiado = g.garantia_copiado.split(' ')
+
+                            mes = anio[0] * 12
+
+                            garantia = {
+                                dias: mes * 30,
+                                copiado: copiado[0]
+                            }
+                        }
+
+                        if(g.garantia_tiempo.toLowerCase().indexOf('dia') != -1 || g.garantia_tiempo.toLowerCase().indexOf('dias') != -1 ){
+                            dias = g.garantia_tiempo.split(' ')
+                            copiado = g.garantia_copiado.split(' ')
+
+                            garantia = {
+                                dias: dias[0],
+                                copiado: copiado[0]
+                            }
+                        }
+                        
                     }
                 })
+
+                return garantia
             }
-            */
-            
-            
-
-           
+                       
         //PRUEBAS SIN TERMINAR
-
             num_forma_pago = 0
             $(document).on('click', '.formaPago', function(){
                 if(num_forma_pago <3){
@@ -2085,6 +2228,15 @@
                 }
             })
 
+            
+            $(document).on('click', '.btnEditarSeries', function(){
+                f = $(this).attr('data-row')
+                producto = $(this).attr('data-producto')
+                //producto = $('.'+f+'.cantidad').parents('tr').attr('class')
+                cantidad = $('.'+f+'.cantidad').val()
+
+                formulario_series_venta(f, producto, cantidad)
+            })
             
         })
     </script>
