@@ -1,4 +1,3 @@
-
 //DECLARACION DE VARIABLES
     //tabla de productos
         num_fila = 1;
@@ -86,72 +85,20 @@
             }
         }
 
+        if(keyCode == 121){
+            cliente = $('#cliente').val()
+            if(cliente != ''){
+                verificar_datos_factura()    
+            }else{
+                alert('No es posible generar la factura.')
+            }
+            
+        }
+
         if($('#cliente').is(':focus')){
             $('#cliente').focus()    
         }
     });
-
-    function mostrar_modal(mostrar, ocultar1, ocultar2, ocultar3){
-        if(mostrar == 'frmSeries' || mostrar == 'frmComentarios' ){
-            $('.modal-sm').addClass('modal-lg');
-            $('.modal-lg').removeClass('modal-sm');
-            $('.modal-lg').css("width","600px")
-            
-            //evita que el modal se cierre con esc o al dar clic fuera
-            $('.references-modal').attr('data-backdrop', 'static')
-            $('.references-modal').attr('data-keyboard', 'false')
-
-        }
-
-        if(mostrar == 'frmAutoriza'){
-            //evita que el modal se cierre con esc o al dar clic fuera
-            $('.references-modal').attr('data-backdrop', 'static')
-            $('.references-modal').attr('data-keyboard', 'false')
-        }
-
-        if(mostrar == 'frmReferencia'){
-            //evita que el modal se cierre con esc o al dar clic fuera
-            $('.references-modal').attr('data-keyboard', 'true')
-        }
-
-        if(mostrar == 'frmReferencia' || mostrar == 'frmAutoriza'){
-            $('.modal-lg').addClass('modal-sm');
-            $('.modal-sm').removeClass('modal-lg');
-            $('.modal-sm').removeAttr('style')
-        }
-        
-        if($('.references-modal').hasClass('in') ){
-            $('.'+mostrar).css('display', 'none')
-            $('.'+ocultar1).css('display', 'none')
-            $('.'+ocultar2).css('display', 'none')
-            $('.'+ocultar3).css('display', 'none')
-
-            $('.references-modal').modal('hide');
-
-        }else if(!$('.references-modal').hasClass('in') ){
-            $('.references-modal').modal('show');
-
-            $('.'+mostrar).css('display', 'block')
-            $('.'+ocultar1).css('display', 'none')
-            $('.'+ocultar2).css('display', 'none')
-            $('.'+ocultar3).css('display', 'none')
-
-        }
-    }
-
-    function ocultar_modal(){
-        $('.mensaje').html('')
-        if($('.references-modal').hasClass('in') ){
-            $('.references-modal').modal('hide');
-            $('.frmComentarios').css('display', 'none')
-            $('.frmReferencia').css('display', 'none')
-            $('.frmSeries').css('display', 'none')
-            $('.frmAutoriza').css('display', 'none')
-
-            $('.references-modal').removeAttr('data-backdrop')
-            $('.references-modal').removeAttr('data-keyboard')
-        }
-    }
 
     $(document).on('click', '.btnCancelar', function(){
         $('.comentario').val('')
@@ -171,8 +118,6 @@
             $('.enganche').css('display', 'none')
         }
     })
-
-    
 
 //FUNCIONES CLIENTE
     /*
@@ -245,15 +190,85 @@
         });
 
     //busca referencias
+        function eliminar_fila_referencia(ref){
+            //recorrer la tabla y buscar la clase que sea igual a la referencia
+            $('.frmFactura tbody tr').each(function(index){
+                
+                if($(this).attr('class') != undefined){
+
+                    clase = $(this).attr('class').split(' ')
+                    if(clase[1] == ref){
+                        $(this).remove()
+                    }
+                }
+            })
+
+            calcular_totales()
+            //obtener numero de filas
+            numFila = $(".frmFactura tbody tr").length
+            
+            if(numFila == 0){
+                agregar_fila(numFila)
+                $('.notProduct').css('display','inline-block')
+
+                comentarios = []
+                get_series = []
+
+                $('.frmFormaPago').css('display', 'none')
+                //resetear valores de subtotal, iva y total
+                //agregar boton de comentario
+            }
+        }
+        
+        function obtener_ultima_fila(){
+           $('.frmFactura tbody tr:last').children('td').each(function(index){
+                switch(index){
+                    case 1:
+                        codigo = $(this).children('input[type="text"]').val()
+                        f = obtener_clase($(this).children('input[type="text"]'))
+                        break
+                }
+            })
+
+            contenido_fila = {
+                codigo : codigo,
+                f : f
+            }
+
+            return contenido_fila;
+        }
+
+        //busca los accesorios del campo relacionados del producto de la cotizacion
+        function buscar_relacionados(datos){
+            series_relacionados = datos.relacionados.split('|')
+
+            aux_relacionados = ''
+            $.each(series_relacionados, function(i, r){
+                if(r != ''){
+                    relacionados = r.split(',');
+                    //aux_relacionados.push(relacionados[0])
+                    aux_relacionados += '"'+relacionados[0]+'"'+ ','
+                }
+                    
+            })
+            aux_relacionados = aux_relacionados.slice(0, -1)
+        
+            accesorio = obtener_accesorios(aux_relacionados)
+
+            return accesorio
+        }
+
         //busca cotiazciones
         $(document).on('click', '.btnCotizacion', function(){
             buscar_cotizacion(cliente, ubicacion);
         })
-        
+
         //busca pedidos
+        $(document).on('click', '.btnPedido', function(){
+            busca_pedido(cliente, ubicacion)
+        })
+
         //busca ordenes de facturacion
-    
-    
 
 //FUNCIONES TABLA PRODUCTOS
     //Funcion que permite ver si existe algun producto en la tabla antes de cambiar de cliente
@@ -273,8 +288,9 @@
     function obtener_clase(div){
         // obtener la clase 
         c = $(div).attr('class').split(' ');
+       
         $.each(c, function(i,v){
-            if(v.length == 2){
+            if(v.length >= 2 && v.length <= 3){
                 clase = c[i]
             }
         })
@@ -411,11 +427,12 @@
 
     //bloquea la fila al agregar un nuevo campo
     function bloquear_campos(num){
-        
-        num_blocked = num - 1
-        if(num_blocked > 0){
-            
-            $('.f'+num_blocked+'.codigo').attr('disabled', 'disabled')    
+        if(num > 1 ){
+            last = obtener_ultima_fila()
+
+            num = last.f.replace('f', '')
+
+            $('.f'+num+'.codigo').attr('disabled', 'disabled')
         }
     }
 
@@ -444,26 +461,34 @@
         row_duplicado = '';
         $('.frmFactura tbody tr').each(function(index){
             
-            $(this).children('td').each(function(index2){
-                if(index2 == 1){
-                    aux_codigo = $(this).children('input[type="text"]').val();
+            clase =  $(this).attr('class')
 
-                    if(aux_codigo != undefined){
-                        if(aux_codigo.indexOf(codigo) != -1){
-                            var nFilas = $(".frmFactura tbody tr").length;
-                            
-                            if(nFilas != 1){
-                                row_duplicado = obtener_clase($(this).children('input'))
+            
+            if(clase == codigo){
+                $(this).children('td').each(function(index2){
+                    if(index2 == 1){
+                        aux_codigo = $(this).children('input[type="text"]').val();
+
+                        if(aux_codigo != undefined){
+                            if(aux_codigo.indexOf(codigo) != -1){
+                                var nFilas = $(".frmFactura tbody tr").length;
+                                
+                                if(nFilas != 1){
+                                    row_duplicado = obtener_clase($(this).children('input'))
+                                }
                             }
                         }
+                            
                     }
-                        
+                    
+                })
+
+                if(row_duplicado != ''){
+                    return false
                 }
-                
-            })
-            if(row_duplicado != ''){
-                return false
-            }
+            }  
+
+            
         })
         return row_duplicado
     }
@@ -842,8 +867,6 @@
             obtener_series(codigo)
         }
     //fin de formulario de ventas
-
-
     
     $(document).on('keydown', '.clave_autoriza', function(e){
         enter = e.keyCode
@@ -919,7 +942,7 @@
             }, 
             function() { 
                 alert("Positive integers only"); 
-                this.value = ""; 
+                //this.value = ""; 
                 this.focus(); 
             }
         );
@@ -934,6 +957,7 @@
             tipo_cambio = t[1]
 
             precio_venta = parseFloat(precio * tipo_cambio);
+
 
             $('.'+f+'.precio-venta').html(
                 '$ '+formatNumber.new(parseFloat(precio_venta).toFixed(2))
