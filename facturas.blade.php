@@ -75,6 +75,7 @@
                                 @if($ref == 'C')
                                     <button type="button" class="list-group-item btnCotizacion" data-dismiss="modal" >Cotización</button>
                                 @endif
+
                                 @if($ref == 'OC')
                                     <button type="button" class="list-group-item btnOC" data-dismiss="modal">Orden Compra</button>
                                 @endif
@@ -811,11 +812,13 @@
                         
                     }else if(datos.producto == 'MULTIPLE'){
                         agregar_fila_referencia_multiple(tipoRef, datos, last_row.f)
+
                     }
                 }else{
                     if(datos.producto != 'MULTIPLE' && datos.relacionados == ''){
                         nueva_fila_referencia(tipoRef, datos)
 
+                        
                     }else if(datos.producto != 'MULTIPLE' && datos.relacionados != ''){
                         nueva_fila_referencia(tipoRef, datos)
                 
@@ -825,6 +828,7 @@
                         //por cada relacionado obtiene el numero de la fila y le agrega uno
                         agregar_fila_referencia(accesorio, tipoRef)
 
+                        
                     }else if(datos.producto == 'MULTIPLE'){
                         last_row = obtener_ultima_fila();
                         quita_f = last_row.f.replace('f', '')
@@ -834,6 +838,7 @@
                         agregar_fila(num)
 
                         agregar_fila_referencia_multiple(tipoRef, datos, nva_fila)
+
                     }
                 }
 
@@ -1074,11 +1079,13 @@
                         requerir_serie = ui.item.serie;
 
                         //nvo_duplicado = nuevo_duplicado(codigo)
-
+                        //agrega_producto_existencia(ui.item, f)
                         if(duplicado != '' && duplicado != f){
                             aux_cantidad = $('.cantidad.'+duplicado).val()
                             cantidad = parseInt(aux_cantidad) + 1
                             $('.cantidad.'+duplicado).val(cantidad)
+
+                            nvo_actualiza_existencia(codigo, cantidad, duplicado)
 
                             descuento = $('.'+duplicado+'.descuento').val()
                             monto = obtener_monto(descuento, duplicado)
@@ -1120,8 +1127,36 @@
                 })
             }
 
+            function agrega_producto_existencia(articulo, f){
+                producto = {
+                    codigo: articulo.codigo,
+                    cantidad_original: articulo.existencia,
+                    fila : [
+                        {
+                            cantidad: parseInt(articulo.cantidad),
+                            f: f
+                        }
+                    ]
+                }
+
+                if(producto.cantidad_original < 1 || producto.cantidad_original == null){
+                    //buscar en otras sucursales
+
+                    alert('El producto '+articulo.descripcion+' tiene una existencia de 0 en la sucursal '+articulo.sucursal)
+                    elimina_fila($('.'+f))
+                }
+                existe = en_existencia(articulo, f)
+
+                if(existe == false && producto.cantidad_original != 0 && producto.cantidad_original != null){
+                    existencia_producto.push(producto)
+                }
+            }
+
             //busca productos seleccionado
+            existencia_producto = []
             function busca_producto(url, referencia='', codigo, row, precio=0, cantidad=0, descuento=0, unidad=''){
+            	producto = codigo.split(' - ')
+            	codigo = producto[0]
                 $.ajax({
                     url: url,
                     method: 'GET',
@@ -1140,149 +1175,151 @@
                                 }, 3000)
 
                             }else{
-                                //desbloquear campos
-                                $('.'+row+'.cantidad').removeAttr('disabled')
-                                $('.'+row+'.promocion').removeAttr('disabled')
-                                $('.'+row+'.precio').removeAttr('disabled')
-                                $('.'+row+'.descuento').removeAttr('disabled')
+                                    //desbloquear campos
+                                    $('.'+row+'.cantidad').removeAttr('disabled')
+                                    $('.'+row+'.promocion').removeAttr('disabled')
+                                    $('.'+row+'.precio').removeAttr('disabled')
+                                    $('.'+row+'.descuento').removeAttr('disabled')
 
-                                $('.loading-producto.'+row).css('visibility', 'hidden')
+                                    $('.loading-producto.'+row).css('visibility', 'hidden')
 
-                                $('.'+row+'.codigo').val(p.producto.codigo+' - '+p.producto.descripcion)
+                                    $('.'+row+'.codigo').val(p.producto.codigo+' - '+p.producto.descripcion)
 
-                                
-                                if(cantidad == 0){
-                                    
-                                    $('.'+row+'.cantidad').val(p.producto.cantidad)
-                                }else{
-                                    p.producto.cantidad = cantidad
-                                    $('.'+row+'.cantidad').val(p.producto.cantidad)
-                                }
-
-                                if(unidad == '')
-                                    $('.unidad.'+row).html(p.producto.unidad_venta)
-                                else
-                                    $('.unidad.'+row).html(unidad)
-
-                                $('.pedir-series.'+row).val(p.producto.requerir_serie)
-                            
-                            
-                                if(referencia == ''){
-                                    $('.'+row+'.codigo').parents("tr").removeAttr('class')
-                                    $('.'+row+'.codigo').parents("tr").addClass(codigo)
-                                }else{
-                                    
-                                    $('.'+row+'.codigo').parents("tr").removeAttr('class')
-                                    $('.'+row+'.codigo').parents("tr").addClass(codigo)
-                                    $('.'+row+'.codigo').parents("tr").addClass(referencia)
-                                }
-                                
-                                $('.'+row+'.promocion').html(
-                                    '<option value="">'+
-                                        '- Seleccione -'+
-                                    '</option>'
-                                )
-
-                                $.each(p.promociones, function(i,v){
-                                    $('.'+row+'.promocion').append(
-                                        '<option value="'+v.id_promocion+'">'+
-                                            v.descripcion+
-                                        '</option>'
-                                    )
-                                })
-                                
-                                if(precio == 0){
-                                    $('.'+row+'.precio').val(p.producto.precio)
-                                    $('.'+row+'.precio').attr('min', p.producto.precio)
-
-                                    if(p.producto.moneda_venta == 0)
-                                        precio_venta = parseFloat(p.producto.precio)
-                                    else
-                                        precio_venta = parseFloat(p.producto.precio) * parseFloat(p.producto.tipo_cambio)    
-
-                                }else if(precio != -1){
-                                    if(p.producto.moneda_venta == 0){
-                                        $('.'+row+'.precio').val(precio)
-                                        $('.'+row+'.precio').attr('min', precio)
-                                        precio_venta = parseFloat(precio)
+                                    if(cantidad == 0){
+                                        
+                                        $('.'+row+'.cantidad').val(p.producto.cantidad)
+                                        agrega_producto_existencia(p.producto, row)
                                     }else{
-                                        if(descuento.length == 1)
-                                            decto = '.0'+descuento
-                                        else
-                                            decto = '.'+descuento
+                                        p.producto.cantidad = cantidad
+                                        $('.'+row+'.cantidad').val(p.producto.cantidad)
+                                        agrega_producto_existencia(p.producto, row)
+                                    }
 
-                                        precio1 = parseFloat(precio) / (1 - parseFloat(decto))
-                                        precio2 = precio1 / parseFloat(p.producto.tipo_cambio)
-                                        $('.'+row+'.precio').val(precio2.toFixed(3))
-                                        $('.'+row+'.precio').attr('min', precio1.toFixed(3))
-                                        precio_venta = parseFloat(precio2) * parseFloat(p.producto.tipo_cambio)
+                                    if(unidad == '')
+                                        $('.unidad.'+row).html(p.producto.unidad_venta)
+                                    else
+                                        $('.unidad.'+row).html(unidad)
+
+                                    $('.pedir-series.'+row).val(p.producto.requerir_serie)
+                                
+                                
+                                    if(referencia == ''){
+                                        $('.'+row+'.codigo').parents("tr").removeAttr('class')
+                                        $('.'+row+'.codigo').parents("tr").addClass(codigo)
+                                    }else{
+                                        
+                                        $('.'+row+'.codigo').parents("tr").removeAttr('class')
+                                        $('.'+row+'.codigo').parents("tr").addClass(codigo)
+                                        $('.'+row+'.codigo').parents("tr").addClass(referencia)
                                     }
                                     
-                                }
+                                    $('.'+row+'.promocion').html(
+                                        '<option value="">'+
+                                            '- Seleccione -'+
+                                        '</option>'
+                                    )
 
-                                if(p.producto.moneda_venta == 0)
-                                    $('.'+row+'.moneda').html('M.N./'+p.producto.tipo_cambio)
-                                else if(p.producto.moneda_venta == 1)
-                                    $('.'+row+'.moneda').html('USD/'+p.producto.tipo_cambio)
-                                else if(p.producto.moneda_venta == 2)
-                                    $('.'+row+'.moneda').html('E/'+p.producto.tipo_cambio)
-
-                                if(descuento == 0){
-                                    $('.'+row+'.descuento').val(0)
-                        
-                                }else{
-                                    $('.'+row+'.descuento').val(descuento)
-                                    $('.'+row+'.descuento').attr('min', 0)
-                                    $('.'+row+'.descuento').attr('max', descuento)
-                                }
-                                                               
-                                $('.'+row+'.precio-venta').html(
-                                    '$ '+formatNumber.new(parseFloat(precio_venta).toFixed(2))
-                                )
-
-                                monto = obtener_monto(descuento, row)
-                                //monto = parseFloat(p.producto.cantidad) * parseFloat(precio_venta)
-                                
-                                $('.'+row+'.monto').html(
-                                    '$ '+formatNumber.new(parseFloat(monto).toFixed(2))
-                                )
-
-                                //al seleccionar una promocion
-                                $(document).on('change', '.'+row+'.promocion', function(e){
-                                    promSelected = $(this).val()
-
-                                    $.each(p.promociones, function(i, e){
-
-                                        if(promSelected == e.id_promocion){
-                                            $('.'+row+'.descuento').val(e.descuento)
-                                            $('.'+row+'.descuento').attr('min', 0)
-                                            $('.'+row+'.descuento').attr('max', e.descuento)
-
-                                            monto = obtener_monto(e.descuento, row)
-                                            
-                                            $('.'+row+'.monto').html(
-                                                '$ '+formatNumber.new(parseFloat(monto).toFixed(2))
-                                            )
-                                        
-                                            calcular_totales()
-                                        }else{
-                                            $('.'+row+'.descuento').val(0)
-                                            $('.'+row+'.descuento').removeAttr('max')
-
-                                            monto = obtener_monto(0, row)
-
-                                            $('.'+row+'.monto').html(
-                                                '$ '+formatNumber.new(parseFloat(monto).toFixed(2))
-                                            )
-
-                                            calcular_totales()
-                                        }
+                                    $.each(p.promociones, function(i,v){
+                                        $('.'+row+'.promocion').append(
+                                            '<option value="'+v.id_promocion+'">'+
+                                                v.descripcion+
+                                            '</option>'
+                                        )
                                     })
-                                })
-                            
-                                calcular_totales()
+                                    
+                                    if(precio == 0){
+                                        $('.'+row+'.precio').val(p.producto.precio)
+                                        $('.'+row+'.precio').attr('min', p.producto.precio)
 
-                                $('.frmFormaPago').css('display', 'inline-block')
+                                        if(p.producto.moneda_venta == 0)
+                                            precio_venta = parseFloat(p.producto.precio)
+                                        else
+                                            precio_venta = parseFloat(p.producto.precio) * parseFloat(p.producto.tipo_cambio)    
+
+                                    }else if(precio != -1){
+                                        if(p.producto.moneda_venta == 0){
+                                            $('.'+row+'.precio').val(precio)
+                                            $('.'+row+'.precio').attr('min', precio)
+                                            precio_venta = parseFloat(precio)
+                                        }else{
+                                            if(descuento.length == 1)
+                                                decto = '.0'+descuento
+                                            else
+                                                decto = '.'+descuento
+
+                                            precio1 = parseFloat(precio) / (1 - parseFloat(decto))
+                                            precio2 = precio1 / parseFloat(p.producto.tipo_cambio)
+                                            $('.'+row+'.precio').val(precio2.toFixed(3))
+                                            $('.'+row+'.precio').attr('min', precio1.toFixed(3))
+                                            precio_venta = parseFloat(precio2) * parseFloat(p.producto.tipo_cambio)
+                                        }
+                                        
+                                    }
+
+                                    if(p.producto.moneda_venta == 0)
+                                        $('.'+row+'.moneda').html('M.N./'+p.producto.tipo_cambio)
+                                    else if(p.producto.moneda_venta == 1)
+                                        $('.'+row+'.moneda').html('USD/'+p.producto.tipo_cambio)
+                                    else if(p.producto.moneda_venta == 2)
+                                        $('.'+row+'.moneda').html('E/'+p.producto.tipo_cambio)
+
+                                    if(descuento == 0){
+                                        $('.'+row+'.descuento').val(0)
+                            
+                                    }else{
+                                        $('.'+row+'.descuento').val(descuento)
+                                        $('.'+row+'.descuento').attr('min', 0)
+                                        $('.'+row+'.descuento').attr('max', descuento)
+                                    }
+                                                                   
+                                    $('.'+row+'.precio-venta').html(
+                                        '$ '+formatNumber.new(parseFloat(precio_venta).toFixed(2))
+                                    )
+
+                                    monto = obtener_monto(descuento, row)
+                                    //monto = parseFloat(p.producto.cantidad) * parseFloat(precio_venta)
+                                    
+                                    $('.'+row+'.monto').html(
+                                        '$ '+formatNumber.new(parseFloat(monto).toFixed(2))
+                                    )
+
+                                    //al seleccionar una promocion
+                                    $(document).on('change', '.'+row+'.promocion', function(e){
+                                        promSelected = $(this).val()
+
+                                        $.each(p.promociones, function(i, e){
+
+                                            if(promSelected == e.id_promocion){
+                                                $('.'+row+'.descuento').val(e.descuento)
+                                                $('.'+row+'.descuento').attr('min', 0)
+                                                $('.'+row+'.descuento').attr('max', e.descuento)
+
+                                                monto = obtener_monto(e.descuento, row)
+                                                
+                                                $('.'+row+'.monto').html(
+                                                    '$ '+formatNumber.new(parseFloat(monto).toFixed(2))
+                                                )
+                                            
+                                                calcular_totales()
+                                            }else{
+                                                $('.'+row+'.descuento').val(0)
+                                                $('.'+row+'.descuento').removeAttr('max')
+
+                                                monto = obtener_monto(0, row)
+
+                                                $('.'+row+'.monto').html(
+                                                    '$ '+formatNumber.new(parseFloat(monto).toFixed(2))
+                                                )
+
+                                                calcular_totales()
+                                            }
+                                        })
+                                    })
+                                
+                                    calcular_totales()
+
+                                    $('.frmFormaPago').css('display', 'inline-block')
+                                  
                             }
                         }
 
@@ -1292,8 +1329,9 @@
             }
             
             function series_disponibles(codigo){
+            	producto = codigo.split(' ')
                 var disponibles;
-
+                codigo = producto[0]
                 $.ajax({
                     url: '{{ route('ventas.series_disponibles')}}',
                     method: 'GET',
@@ -1311,6 +1349,8 @@
             }
 
             function obtener_garantias(codigo){
+            	producto = codigo.split(' ')
+            	codigo = producto[0]
                 var garantia = {
                     dias: 0,
                     copiado: 0
@@ -1365,6 +1405,8 @@
             }
 
             function obtener_series(codigo){
+            	producto = codigo.split(' ')
+            	codigo = producto[0]
                 $.ajax({
                     url: '{!! route('ventas.obtener_series') !!}',
                     method: 'GET',
@@ -1421,30 +1463,45 @@
             }
 
             $(document).on('click', '.formaPago', function(){
-                if(num_forma_pago <3){
-                    $('.inputFormaPago').append(
-                        '<div class="row">'+
-                            '<div class="col-md-6 form-group formas">'+
-                                '<select name="forma_pago" class="form-control input-sm forma-pago fp'+num_forma_pago+'">'+
-                                    '<option value="">- Seleccione -</option>'+
-                                    '<option value="01">Efectivo</option>'+
-                                    '<option value="02">Cheque</option>'+
-                                    '<option value="03">Transferencia Electrónico de fondos</option>'+
-                                    '<option value="04">Tarjeta de Credito</option>'+
-                                    '<option value="28">Tarjeta de Debito</option>'+
-                                    '<option value="Credito">Credito</option>'+
-                                    '<option value="99">Otro</option>'+
-                                '</select>'+
-                            '</div>'+
+                total = $('#total').val()
+                total = total.replace(/,/g, '');
+                total = parseFloat(total)
 
-                            '<div class="col-md-6 form-group">'+
-                                '{!!Form::text('cantidad_pago', null, ['class'=>'form-control input-sm cantidad-pago'])!!}'+
-                            '</div>'+
-                        '</div>'
-                    )
+                subtotal = 0;
 
-                
-                    num_forma_pago++;
+                $('.total-formas').children('input').each(function(index){                    
+                    if($(this).val() != '')
+                        subtotal = parseFloat(subtotal) + parseFloat($(this).val())          
+                })
+
+                nvo_total = total - subtotal
+
+                if(nvo_total > 0){
+                    if(num_forma_pago < 10){
+                        $('.inputFormaPago').append(
+                            '<div class="row">'+
+                                '<div class="col-md-6 form-group formas">'+
+                                    '<select name="forma_pago" class="form-control input-sm forma-pago fp'+num_forma_pago+'">'+
+                                        '<option value="">- Seleccione -</option>'+
+                                        '<option value="30">Aplicación de anticipos</option>'+
+                                        '<option value="01">Efectivo</option>'+
+                                        '<option value="02">Cheque</option>'+
+                                        '<option value="03">Transferencia Electrónico de fondos</option>'+
+                                        '<option value="04">Tarjeta de Credito</option>'+
+                                        '<option value="28">Tarjeta de Debito</option>'+
+                                        '<option value="99">Por definir</option>'+
+                                    '</select>'+
+                                '</div>'+
+
+                                '<div class="col-md-6 form-group total-formas">'+
+                                    '<input type="text" name="cantidad_pago" class="form-control input-sm cantidad-pago fp'+num_forma_pago+'" />'+
+                                '</div>'+
+                            '</div>'
+                        )
+
+                    
+                        num_forma_pago++;
+                    }
                 }
             })
    
@@ -1531,8 +1588,7 @@
                         detalle_factura.push(detalle)
                     })
 
-                    console.log(detalle_factura)
-                    /*
+                    
                     if($('.formas').children('select').length == 0){
                         alert('Debe de agregar por lo menos una forma de pago.')
                     }else{
@@ -1545,13 +1601,128 @@
                             }
                                 
                         })
-                    }*/
+                    }
                     
 
 
-                    console.log(factura)
+                    
                 }
             }
+
+
+            function en_existencia(articulo, row){
+                exist = false
+
+                console.log(articulo.codigo)
+                $.each(existencia_producto, function(i, p){
+                    if(p.codigo == articulo.codigo){
+                        exist=true
+
+                        cont = 0
+                        aux_exist = 0
+                        $.each(p.fila, function(i, f){
+                            if(f.f != row){
+                                cont++;
+                                aux_exist += f.cantidad  
+                            }else{
+                                cont--
+                            }
+                        })
+
+                        if(cont != 0){
+                            if(p.cantidad_original == aux_exist){
+                                alert('La cantidad de producto '+p.codigo+' es igual a la existencia, no se puede agregar una cantidad mayor.')
+                                
+                                elimina_fila($('.'+row))
+                            }else{
+                                fila = {
+                                    cantidad: parseInt(articulo.cantidad),
+                                    f: row
+                                }
+
+                                p.fila.push(fila)
+
+                            }
+                                
+                        }
+                        
+                        return false
+                    }                   
+                })
+
+                return exist
+            }
+
+            function nvo_actualiza_existencia(codigo, cantidad, row){
+            	$.each(existencia_producto, function(i, p){
+            		if(p.codigo == codigo || codigo.indexOf(p.codigo) != -1){
+            			sum = 0
+            			sub_sum = 0
+            			$.each(p.fila, function(i, f){
+            				if(f.f == row){
+            					f.cantidad = parseInt(cantidad)
+            					sum += f.cantidad
+            				}else{
+            					sub_sum += f.cantidad
+            				}
+            			})
+
+            			total = sum + sub_sum
+            			if(total > p.cantidad_original){
+            				nva_cant = p.cantidad_original - sub_sum
+            				nvo_actualiza_existencia(codigo, nva_cant, row)
+
+            				alert('La cantidad de producto '+codigo+' es igual a la existencia ('+p.cantidad_original+'), no se puede agregar una cantidad mayor.')
+                        
+            				$('.'+row+'.cantidad').val(nva_cant)
+            			}
+            			
+            		}
+            	})
+            }
+
+            $(document).on('change', '.forma-pago', function(){
+                tot_forma = $('.total-formas').children('input').length
+
+                total = $('#total').val()
+                total = total.replace(/,/g, '');
+                total = parseFloat(total)
+
+                subtotal = 0;
+
+                $('.total-formas').children('input').each(function(index){
+                    if($(this).val() != '' && (tot_forma-1) != index)
+                        subtotal = parseFloat(subtotal) + parseFloat($(this).val())          
+                })
+
+                tot_forma = $('.total-formas').children('input').length
+
+                if(tot_forma == 1){
+                    $('.cantidad-pago.fp0').val(total)
+                    $('.cantidad-pago.fp0').attr('max', total)
+                }else{
+
+                    $('.forma-pago.fp'+(tot_forma-2)).attr('disabled', 'disabled')
+                    $('.cantidad-pago.fp'+(tot_forma-2)).removeAttr('max')
+                    $('.cantidad-pago.fp'+(tot_forma-2)).attr('disabled', 'disabled')
+                    nvo_total = total - subtotal
+
+                    $('.cantidad-pago.fp'+(tot_forma-1)).val(nvo_total.toFixed(2))
+                    $('.cantidad-pago.fp'+(tot_forma-1)).attr('max', nvo_total.toFixed(2))
+                }
+            })
+
+            $(document).on('focus', '.cantidad-pago', function(){
+                max = parseFloat($(this).attr('max'))
+                $(this).keyup(function(){
+                    cantidad = parseFloat($(this).val())
+
+                    if(cantidad > max){
+                        $(this).val(max)
+                    }
+                })
+            })
+
     </script>
    
 @endsection

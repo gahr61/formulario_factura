@@ -119,6 +119,70 @@
         }
     })
 
+    //GENERALES
+    function mostrar_modal(mostrar, ocultar1, ocultar2, ocultar3){
+        if(mostrar == 'frmSeries' || mostrar == 'frmComentarios' ){
+            $('.modal-sm').addClass('modal-lg');
+            $('.modal-lg').removeClass('modal-sm');
+            $('.modal-lg').css("width","600px")
+            
+            //evita que el modal se cierre con esc o al dar clic fuera
+            $('.references-modal').attr('data-backdrop', 'static')
+            $('.references-modal').attr('data-keyboard', 'false')
+
+        }
+
+        if(mostrar == 'frmAutoriza'){
+            //evita que el modal se cierre con esc o al dar clic fuera
+            $('.references-modal').attr('data-backdrop', 'static')
+            $('.references-modal').attr('data-keyboard', 'false')
+        }
+
+        var btn1;
+        if(mostrar == 'frmReferencia'){
+            //evita que el modal se cierre con esc o al dar clic fuera
+            $('.references-modal').attr('data-keyboard', 'true')            
+        }
+
+        if(mostrar == 'frmReferencia' || mostrar == 'frmAutoriza'){
+            $('.modal-lg').addClass('modal-sm');
+            $('.modal-sm').removeClass('modal-lg');
+            $('.modal-sm').removeAttr('style')
+        }
+        
+        if($('.references-modal').hasClass('in') ){
+            $('.'+mostrar).css('display', 'none')
+            $('.'+ocultar1).css('display', 'none')
+            $('.'+ocultar2).css('display', 'none')
+            $('.'+ocultar3).css('display', 'none')
+
+            $('.references-modal').modal('hide');
+
+        }else if(!$('.references-modal').hasClass('in') ){
+            $('.references-modal').modal('show');
+
+            $('.'+mostrar).css('display', 'block')
+            $('.'+ocultar1).css('display', 'none')
+            $('.'+ocultar2).css('display', 'none')
+            $('.'+ocultar3).css('display', 'none')
+
+        }
+    }
+
+    function ocultar_modal(){
+        $('.mensaje').html('')
+        if($('.references-modal').hasClass('in') ){
+            $('.references-modal').modal('hide');
+            $('.frmComentarios').css('display', 'none')
+            $('.frmReferencia').css('display', 'none')
+            $('.frmSeries').css('display', 'none')
+            $('.frmAutoriza').css('display', 'none')
+
+            $('.references-modal').removeAttr('data-backdrop')
+            $('.references-modal').removeAttr('data-keyboard')
+        }
+    }
+
 //FUNCIONES CLIENTE
     /*
     llena los campo del pop over del cliente y de la dierccion de envio
@@ -190,6 +254,26 @@
         });
 
     //busca referencias
+        function elimina_de_referencias(codigo, row){
+            $.each(existencia_producto, function(i, p){
+                if(p.codigo == codigo){
+                     num_f = p.fila.length
+                    if(num_f > 1){
+                        $.each(p.fila, function(j, f){
+                            if(f.f == row){
+                                p.fila.splice(j, 1)
+                                return false
+                            }
+                        })
+                    }else{
+                        existencia_producto.splice(i, 1)
+                    }
+                }
+            })
+
+            console.log(existencia_producto)
+        }
+      
         function eliminar_fila_referencia(ref){
             //recorrer la tabla y buscar la clase que sea igual a la referencia
             $('.frmFactura tbody tr').each(function(index){
@@ -197,8 +281,14 @@
                 if($(this).attr('class') != undefined){
 
                     clase = $(this).attr('class').split(' ')
+                   
+                    codigo = clase[0]
                     if(clase[1] == ref){
+                        input = $(this).children('td').children('input[type=text]')
+                        f = obtener_clase(input)
+                        elimina_de_referencias(codigo, f)
                         $(this).remove()
+                        
                     }
                 }
             })
@@ -347,6 +437,7 @@
 
     function elimina_fila(tr){
         $(tr).parents('tr').remove()
+
         var nFilas = $(".frmFactura tbody tr").length;
 
         if(nFilas > 1){
@@ -358,7 +449,7 @@
                 '<a class="btn btn-primary addProduct"s>Agregar Producto</a> '
             )
         }else if(nFilas == 0){
-            num_fila = 1
+            num_fila = 0
             agregar_fila(num_fila)
             $('.btns').html(
                 '<a class="btn btn-primary addProduct"s>Agregar Producto</a> '+
@@ -395,6 +486,10 @@
 
         producto = $(this).parents('tr').attr('class')
         f = obtener_clase(this)
+
+        codigo = producto.split(' ')
+
+        elimina_de_referencias(codigo[0], f)
 
         //elimina fila de comentarios
         $('.comment'+producto).remove()
@@ -463,7 +558,6 @@
             
             clase =  $(this).attr('class')
 
-            
             if(clase == codigo){
                 $(this).children('td').each(function(index2){
                     if(index2 == 1){
@@ -488,7 +582,6 @@
                 }
             }  
 
-            
         })
         return row_duplicado
     }
@@ -499,7 +592,9 @@
         f = obtener_clase(this)
         series = $('.pedir-series.'+f).val()
         cantidad = $(this).val()
-        codigo = $('.cantidad').parents('tr').attr('class')
+        codigo = $(this).parents('tr').attr('class')
+
+        nvo_actualiza_existencia(codigo, cantidad, f)       
 
         if(series == 'V' && producto_series == 'S'){
             if(cantidad != 0){
@@ -572,6 +667,8 @@
             }
         })
     })
+
+    
 
     //funciones de series para formulario de factura de compra
         function buscar_series(codigo){
