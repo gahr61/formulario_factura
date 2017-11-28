@@ -8,6 +8,7 @@
 		$_SESSION['e_nombre'] 		= 'Rogelio';
 		$_SESSION['e_apellido_p'] 	= 'Gámez';
 		$_SESSION['e_apellido_m'] 	= 'Hernández';
+		$_SESSION['e_permisos'] 	= 'P000';
 	?>
 	
 	{!!Form::open(['route'=>'factura.prueba', 'method'=>'POST', 'id'=>'facturaVenta'])!!}

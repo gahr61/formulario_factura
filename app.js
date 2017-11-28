@@ -18,6 +18,9 @@
         autoriza = 0;
         num_forma_pago = 0
 
+    //referencias
+        existencia_producto = []
+
 //FUNCIONES GENERALES
     //funciones cargadas al iniciar la pagina
     $('#cliente').focus()
@@ -121,33 +124,27 @@
 
     //GENERALES
     function mostrar_modal(mostrar, ocultar1, ocultar2, ocultar3){
-        if(mostrar == 'frmSeries' || mostrar == 'frmComentarios' ){
+        if(mostrar == 'frmSeries' || mostrar == 'frmComentarios' || mostrar == 'frmAutoriza'){
             $('.modal-sm').addClass('modal-lg');
             $('.modal-lg').removeClass('modal-sm');
             $('.modal-lg').css("width","600px")
             
             //evita que el modal se cierre con esc o al dar clic fuera
-            $('.references-modal').attr('data-backdrop', 'static')
-            $('.references-modal').attr('data-keyboard', 'false')
-
+            $('.references-modal').modal({
+                backdrop: 'static',
+                keyboard: false
+            })
         }
 
-        if(mostrar == 'frmAutoriza'){
-            //evita que el modal se cierre con esc o al dar clic fuera
-            $('.references-modal').attr('data-backdrop', 'static')
-            $('.references-modal').attr('data-keyboard', 'false')
-        }
-
-        var btn1;
         if(mostrar == 'frmReferencia'){
-            //evita que el modal se cierre con esc o al dar clic fuera
-            $('.references-modal').attr('data-keyboard', 'true')            
-        }
-
-        if(mostrar == 'frmReferencia' || mostrar == 'frmAutoriza'){
             $('.modal-lg').addClass('modal-sm');
             $('.modal-sm').removeClass('modal-lg');
             $('.modal-sm').removeAttr('style')
+
+            $('.references-modal').modal({
+                backdrop: 'static',
+                keyboard: false
+            })
         }
         
         if($('.references-modal').hasClass('in') ){
@@ -177,9 +174,6 @@
             $('.frmReferencia').css('display', 'none')
             $('.frmSeries').css('display', 'none')
             $('.frmAutoriza').css('display', 'none')
-
-            $('.references-modal').removeAttr('data-backdrop')
-            $('.references-modal').removeAttr('data-keyboard')
         }
     }
 
@@ -253,25 +247,32 @@
             $('.popover-direccion').css('display', 'none');
         });
 
-    //busca referencias
+//FUNCIONES REFERENCIAS
         function elimina_de_referencias(codigo, row){
-            $.each(existencia_producto, function(i, p){
-                if(p.codigo == codigo){
-                     num_f = p.fila.length
-                    if(num_f > 1){
-                        $.each(p.fila, function(j, f){
-                            if(f.f == row){
-                                p.fila.splice(j, 1)
-                                return false
-                            }
-                        })
-                    }else{
-                        existencia_producto.splice(i, 1)
-                    }
-                }
-            })
 
-            console.log(existencia_producto)
+            if(existencia_producto.length != 0){
+                $.each(existencia_producto, function(i, p){
+                    if(p != undefined){
+                        if(p.codigo == codigo){
+                            
+                            num_f = p.fila.length
+                            
+                            if(num_f > 1){
+                                $.each(p.fila, function(j, f){
+                                    if(f.f == row){
+                                        p.fila.splice(j, 1)
+                                        return false
+                                    }
+                                })
+                            }else{  
+                                
+                                existencia_producto.splice(i, 1)
+                            }
+                        }
+                    }
+                })
+            }
+            
         }
       
         function eliminar_fila_referencia(ref){
@@ -283,39 +284,26 @@
                     clase = $(this).attr('class').split(' ')
                    
                     codigo = clase[0]
-                    if(clase[1] == ref){
+                    if((clase[1] == ref && clase[1] != undefined) || clase[0] == ref){
                         input = $(this).children('td').children('input[type=text]')
                         f = obtener_clase(input)
                         elimina_de_referencias(codigo, f)
-                        $(this).remove()
+                        
+                        elimina_fila(input)
                         
                     }
                 }
             })
 
             calcular_totales()
-            //obtener numero de filas
-            numFila = $(".frmFactura tbody tr").length
-            
-            if(numFila == 0){
-                agregar_fila(numFila)
-                $('.notProduct').css('display','inline-block')
-
-                comentarios = []
-                get_series = []
-
-                $('.frmFormaPago').css('display', 'none')
-                //resetear valores de subtotal, iva y total
-                //agregar boton de comentario
-            }
         }
         
         function obtener_ultima_fila(){
            $('.frmFactura tbody tr:last').children('td').each(function(index){
                 switch(index){
                     case 1:
-                        codigo = $(this).children('input[type="text"]').val()
-                        f = obtener_clase($(this).children('input[type="text"]'))
+                        codigo = $(this).children('input[type=text]').val()
+                        f = obtener_clase($(this).children('input[type=text]'))
                         break
                 }
             })
@@ -359,6 +347,131 @@
         })
 
         //busca ordenes de facturacion
+        $(document).on('click', '.btnOF', function(){
+            busca_ordenes_facturacion(cliente, ubicacion)
+        })
+
+        function agrega_fila_orden_factura(datos, ref){ //app
+            last_row = obtener_ultima_fila()
+            if(last_row.codigo == ''){
+                $.each(datos, function(i, d){
+                    if(i == 1){
+                        if(d.indexOf('SERVICIO') != -1 || d.indexOf('INSTALACION') != -1){ //si contiene la palabra servicio
+                            //agrega datos a la fila sin hacer la busqueda de producto
+                            f = last_row.f
+                            nva_sin_codigo(f, datos, d, i, ref)
+                            
+
+                        }else{ //si no se encuentra la palabra servicio
+                            //hacer un trim a la variable y la separa con split
+                            //busqueda de producto con el codigo obtenido
+                            f = last_row.f
+
+                            nva_con_codigo(f, datos, d, i, ref)
+                            
+                        }
+                    }
+
+                    if(i>1 && i%3 == 0){ //se buscan series si el valor de i es 1 y i es multiplo de 3
+                        //hacer trim y split
+                        //busqueda de producto
+                        num = nvo_num_fila()
+                        nva_fila = 'f'+num;
+                        
+                        agregar_fila(num)
+
+                        nva_con_codigo(nva_fila, datos, d, i, ref)
+                    }
+                })
+
+                calcular_totales()
+            }else{
+                $.each(datos, function(i, d){    
+
+                    if(i == 1){
+                        num = nvo_num_fila()
+                        nva_fila = 'f'+num;
+
+                        agregar_fila(num)
+
+                        if(d.indexOf('SERVICIO') != -1 || d.indexOf('INSTALACION') != -1){ //si contiene la palabra servicio
+                            //agrega datos a la fila sin hacer la busqueda de producto
+                            
+                            nva_sin_codigo(nva_fila, datos, d, i, ref)
+                            
+                        }else{ //si no se encuentra la palabra servicio
+                            //hacer un trim a la variable y la separa con split
+                            //busqueda de producto con el codigo obtenido
+
+                            nva_con_codigo(nva_fila, datos, d, i, ref)
+                            
+                        }
+                    }
+
+                    if(i>1 && i%3 == 0){ //se buscan series si el valor de i es 1 y i es multiplo de 3
+                        //hacer trim y split
+                        //busqueda de producto
+                        num = nvo_num_fila()
+                        nva_fila = 'f'+num;
+
+                        agregar_fila(num)
+
+                        nva_con_codigo(nva_fila, datos, d, i, ref)
+                    }
+                                               
+                })
+
+                calcular_totales()
+            }
+        }
+
+        function nva_sin_codigo(row, datos, d, i, ref){ //app
+            solo_val = d.split('    ')
+            $.each(solo_val, function(i, v){
+                if(v != undefined){
+                    if(v.length == 0)
+                        solo_val.splice(i, 1)
+                }
+            })
+
+            $('.'+f+'.codigo').parents("tr").removeAttr('class')
+            $('.'+f+'.codigo').parents("tr").addClass(ref)
+
+            $('.'+f+'.codigo').val(solo_val[0])
+            $('.'+f+'.cantidad').removeAttr('disabled')
+            $('.'+f+'.promocion').removeAttr('disabled')
+            $('.'+f+'.precio').removeAttr('disabled')
+            $('.'+f+'.descuento').removeAttr('disabled')
+
+            $('.'+f+'.cantidad').val(datos[i-1].substring(0, 1))
+            $('.'+f+'.precio').val(solo_val[1])
+            $('.'+f+'.moneda').html('M.N./1.0000')
+            $('.'+f+'.descuento').val(0)
+            
+            precio_venta = parseFloat(solo_val[1])
+            $('.'+f+'.precio-venta').html(
+                '$ '+formatNumber.new(parseFloat(precio_venta).toFixed(2))
+            )
+
+            monto = obtener_monto(0, f)
+            
+            $('.'+f+'.monto').html(
+                '$ '+formatNumber.new(parseFloat(monto).toFixed(2))
+            )
+            
+            calcular_totales()
+
+            $('.frmFormaPago').css('display', 'inline-block')
+        }
+
+        function nvo_num_fila(){ //app
+            last_row = obtener_ultima_fila();
+            quita_f = last_row.f.replace('f', '')
+            num = parseInt(quita_f) + 1;
+            nva_fila = 'f'+num;
+
+            return num;
+        }
 
 //FUNCIONES TABLA PRODUCTOS
     //Funcion que permite ver si existe algun producto en la tabla antes de cambiar de cliente
@@ -387,6 +500,12 @@
         return clase
     }
 
+    $(document).on('click', '.addCodSAT', function(){
+        $(this).popover({
+            html: true
+        })
+    })
+    
     function agregar_fila(num){
         bloquear_campos(num_fila)
         //agregar una nueva fila
@@ -408,12 +527,18 @@
         precio_venta =  '<div class="f'+num+' precio-venta" style="width:100%"></div>'
         monto        =  '<div class="f'+num+' monto" style="width:100%"></div>'
         
-        accion       =  '<span class="close btnElimina f'+num+'" style="padding: 1px 2px">'+
-                            '<span aria-hidden="true">&times;</span>'+
-                        '</span> '+
-                        '<span class="close addComment f'+num+'" style="padding: 1px 2px">'+
+        accion1       = '<span class="close addCodSAT f'+num+'" style="padding: 1px 2px; display:none"'+
+                            ' data-container="body" data-toggle="popover" data-placement="left">'+
+                            '<i class="glyphicon glyphicon-info-sign"></i>'+
+                        '</span>'
+
+        accion2       =  '<span class="close addComment f'+num+'" style="padding: 1px 2px; display: none">'+
                             '<i class="glyphicon glyphicon-comment"></i>'+
                         '</span>'
+
+        accion3       =  '<span class="close btnElimina f'+num+'" style="padding: 1px 2px">'+
+                            '<span aria-hidden="true">&times;</span>'+
+                        '</span> '
 
         $('.frmFactura').append(
             '<tr>'+
@@ -424,9 +549,12 @@
                 '<td style="width:9%">'+precio+'</td>'+
                 '<td style="width:7%">'+moneda+'</td>'+
                 '<td style="width:7%">'+descuento+'</td>'+
-                '<td style="width:7%">'+precio_venta+'</td>'+
+                '<td style="width:8%">'+precio_venta+'</td>'+
                 '<td style="width:10%">'+monto+'</td>'+
-                '<td style="width:3%">'+accion+'</td>'+
+                '<td style="width:1%">'+accion1+'</td>'+
+                '<td style="width:1%">'+accion2+'</td>'+
+                '<td style="width:1%">'+accion3+'</td>'+
+
             '</tr>'
         )
 
@@ -450,17 +578,21 @@
             )
         }else if(nFilas == 0){
             num_fila = 0
+            comentarios = []
+            get_series = []
+            
             agregar_fila(num_fila)
+            
             $('.btns').html(
                 '<a class="btn btn-primary addProduct"s>Agregar Producto</a> '+
                 '<a class="btn btn-info notProduct">Agregar Comentario</a>'
             )
-        }
+            
+            $('.frmFormaPago').css('display', 'none')
+        }       
 
-        comentarios = []
-        get_series = []
-
-        $('.frmFormaPago').css('display', 'none')
+        $('.inputFormaPago').html('')
+        num_forma_pago = 0
     }
 
     function elimina_comentario(producto, fila, accion){
@@ -487,16 +619,20 @@
         producto = $(this).parents('tr').attr('class')
         f = obtener_clase(this)
 
-        codigo = producto.split(' ')
+        if(producto != undefined){
+            codigo = producto.split(' ')
 
-        elimina_de_referencias(codigo[0], f)
+            elimina_de_referencias(codigo[0], f)
 
-        //elimina fila de comentarios
-        $('.comment'+producto).remove()
+            //elimina fila de comentarios
+            $('.comment'+producto).remove()
 
-        elimina_comentario(producto, f, 'quitar')
+            elimina_comentario(producto, f, 'quitar')
 
-        calcular_totales()
+            calcular_totales()
+        }
+
+            
     })
 
     //agregar comentario sin producto
@@ -547,7 +683,7 @@
             //si las verificaciones son correctas
                 //agregar el id_producto como clase de todos los elementos de la fila
 
-                agregar_fila(num_fila)    
+                agregar_fila(num_fila)  
     })
 
     //busca en la tabla si ya existe un valor 
@@ -605,10 +741,20 @@
                     alert('El número de series disponibles es menor al el de productos que está ingresando. Se mostraran únicamente las series disponibles.')
                 
                     $(this).val(disp_series)
+                    nvo_actualiza_existencia(codigo, disp_series, f)  
 
-                    formulario_series_venta(f, codigo, disp_series)
+                    if(disp_series != 0)
+                        formulario_series_venta(f, codigo, disp_series)
+                    else
+                        descuento = $('.'+f+'.descuento').val()
+                        monto = obtener_monto(descuento, f)
+                        $('.'+f+'.monto').html(
+                            '$ '+formatNumber.new(parseFloat(monto).toFixed(2))
+                        )
+
+                        calcular_totales()
+
                 }else{
-
 
                     formulario_series_venta(f, codigo, cantidad)
                 }
@@ -632,8 +778,8 @@
                 negative: false 
             }, 
             function() { 
-                alert("Positive integers only"); 
-                this.value = ""; 
+                //alert("Positive integers only"); 
+                //this.value = ""; 
                 this.focus(); 
             }
         );
@@ -668,9 +814,112 @@
         })
     })
 
-    
+    function agrega_producto_existencia(articulo, f){ //app
+        producto = {
+            codigo: articulo.codigo,
+            cantidad_original: articulo.existencia,
+            fila : [
+                {
+                    cantidad: parseInt(articulo.cantidad),
+                    f: f
+                }
+            ]
+        }
 
+        no_agrega = false
+
+        if(producto.cantidad_original < 1 || producto.cantidad_original == null){
+            //buscar en otras sucursales
+
+            alert('El producto '+articulo.descripcion+' tiene una existencia de 0 en la sucursal '+articulo.sucursal)
+            no_agrega = true 
+            elimina_fila($('.'+f))
+        }
+        existe = en_existencia(articulo, f)
+
+        if(existe == false && producto.cantidad_original != 0 && producto.cantidad_original != null){
+            existencia_producto.push(producto)
+        }
+
+        return no_agrega
+    }
+
+
+    function en_existencia(articulo, row){
+        exist = false
+        $.each(existencia_producto, function(i, p){
+            if(p.codigo == articulo.codigo){
+                exist=true
+
+                cont = 0
+                aux_exist = 0
+                $.each(p.fila, function(i, f){
+                    if(f.f != row){
+                        cont++;
+                        aux_exist += f.cantidad  
+                    }else{
+                        cont--
+                    }
+                })
+
+                if(cont != 0){
+                    if(p.cantidad_original == aux_exist){
+                        alert('La cantidad de producto '+p.codigo+' es igual a la existencia, no se puede agregar una cantidad mayor.')
+                        
+                        elimina_fila($('.'+row))
+                    }else{
+                        fila = {
+                            cantidad: parseInt(articulo.cantidad),
+                            f: row
+                        }
+
+                        p.fila.push(fila)
+
+                    }
+                        
+                }
+                
+                return false
+            }                   
+        })
+
+        return exist
+    }
+
+    function nvo_actualiza_existencia(codigo, cantidad, row){
+
+        $.each(existencia_producto, function(i, p){
+            if(p.codigo == codigo || codigo.indexOf(p.codigo) != -1){
+                sum = 0
+                sub_sum = 0
+                $.each(p.fila, function(i, f){
+                    if(f.f == row){
+                        f.cantidad = parseInt(cantidad)
+                        sum += f.cantidad
+                    }else{
+                        sub_sum += f.cantidad
+                    }
+                })
+
+                total = sum + sub_sum
+                if(total > p.cantidad_original){
+                    nva_cant = p.cantidad_original - sub_sum
+                    nvo_actualiza_existencia(codigo, nva_cant, row)
+
+                    alert('La cantidad de producto '+codigo+' es mayor a la existencia ('+p.cantidad_original+'), no es posible agregar una cantidad mayor.')
+                
+                    $('.'+row+'.cantidad').val(nva_cant)
+                }
+                
+            }
+        })
+    }
+    
     //funciones de series para formulario de factura de compra
+        function elimina_serie(producto, row){
+            console.log(get_series)
+            console.log(existencia_producto)
+        }
         function buscar_series(codigo){
             serie_encontrada = []
             $.each(get_series, function(i, s){
@@ -785,9 +1034,10 @@
                 garantia_dias: '',
                 garantia_copias: ''
             }        
-
+            
+            
             $('.tbl_num_series tbody tr').each(function(index){
-                cont = 0;
+                cont = 0
                 $(this).children('td').each(function(index2){
                     switch(index2){
                         case 0:
@@ -819,15 +1069,16 @@
                 })
 
                 existe = existe_serie(codigo, serie)
+
                 if(existe != true){
                     if(add.serie != undefined){
                         get_series.push(add)
                         add = []
-                    }
-                        
+                    }  
                 }else{
                     cont++
-                    get_series = []
+
+                    //get_series = []
                 }
             })
 
@@ -841,7 +1092,7 @@
                 )
                 setTimeout(function(){
                     $('.mensaje').html('')
-                }, 2000)
+                }, 4000)
                     
             }else{
                 $('.mensaje').html('')
@@ -1038,8 +1289,8 @@
                 negative: false 
             }, 
             function() { 
-                alert("Positive integers only"); 
-                //this.value = ""; 
+                //alert("Positive integers only"); 
+                this.value = ""; 
                 this.focus(); 
             }
         );
@@ -1074,7 +1325,7 @@
 
             precio_minimo = $(this).attr('min')
 
-            if(precio < precio_minimo && precio.length <= precio_minimo.length){
+            if(parseFloat(precio) < parseFloat(precio_minimo)){
                 $('.fila-producto').val(f)
                 $('.mensaje').html('')
                 
@@ -1261,43 +1512,49 @@
         comment_showed = []
         buscar_en_comentarios(producto, f)
 
-        //agrega los comentarios a la fila que se agrego
-        $('.comment'+producto+' td .comments').html(
-            '<label>Comentarios: </label><br>'
-        )
-        $.each(comment_showed, function(i, c){
-            $('.comment'+producto+' td .comments').append(
-                '- '+c+'<br>'
+        if(comment_showed.length != 0){
+            //agrega los comentarios a la fila que se agrego
+            $('.comment'+producto+' td .comments').html(
+                '<label>Comentarios: </label><br>'
             )
-        })
+            $.each(comment_showed, function(i, c){
+                $('.comment'+producto+' td .comments').append(
+                    '- '+c+'<br>'
+                )
+            })
+        }
 
         //agregar series
         serie_row = []
         serie_row = buscar_series(producto)
-        $('.show-series.'+f).html(
-            '<table class="tblSeries '+f+' table">'+
-                '<tr>'+
-                    '<th>Series</th>'+
-                    '<th>Garantia Dias</th>'+
-                    '<th>GarantiaCopias</th>'+
-                    '<td>'+
-                        '<a data-row="'+f+'" data-producto="'+producto+'" class="btnEditarSeries">Editar</a>'+
-                    '</td>'+
-                '</tr>'+
-            '</table>'
-        )
-        num_series = serie_row.length
-        $.each(serie_row, function(i, s){
-            //if(num_series-1 == i){
-                $('.tblSeries.'+f).append(
+    
+        if(serie_row.length != 0){
+            $('.show-series.'+f).html(
+                '<table class="tblSeries '+f+' table">'+
                     '<tr>'+
-                        '<td>'+s.serie+'</td>'+
-                        '<td>'+s.garantia_dias+'</td>'+
-                        '<td>'+s.garantia_copias+'</td>'+
-                    '</tr>'
-                )
-               
-        })
+                        '<th>Series</th>'+
+                        '<th>Garantia Dias</th>'+
+                        '<th>GarantiaCopias</th>'+
+                        '<td>'+
+                            '<a data-row="'+f+'" data-producto="'+producto+'" class="btnEditarSeries">Editar</a>'+
+                        '</td>'+
+                    '</tr>'+
+                '</table>'
+            )
+            num_series = serie_row.length
+            $.each(serie_row, function(i, s){
+                //if(num_series-1 == i){
+                    $('.tblSeries.'+f).append(
+                        '<tr>'+
+                            '<td>'+s.serie+'</td>'+
+                            '<td>'+s.garantia_dias+'</td>'+
+                            '<td>'+s.garantia_copias+'</td>'+
+                        '</tr>'
+                    )
+                   
+            })
+        }
+            
 
         //cambiar icono de + a -
         $('.loading-row.'+f).html(
@@ -1323,6 +1580,91 @@
         producto = $(this).parents('tr').attr('class')
         
         oculta_comentario(producto, f)
+    })
+
+    $(document).on('click', '.formaPago', function(){
+        total = $('#total').val()
+        total = total.replace(/,/g, '');
+        total = parseFloat(total)
+
+        subtotal = 0;
+
+        $('.total-formas').children('input').each(function(index){                    
+            if($(this).val() != '')
+                subtotal = parseFloat(subtotal) + parseFloat($(this).val())          
+        })
+
+        nvo_total = total - subtotal
+
+        if(nvo_total > 0){
+            if(num_forma_pago < 10){
+                $('.inputFormaPago').append(
+                    '<div class="row">'+
+                        '<div class="col-md-6 form-group formas">'+
+                            '<select name="forma_pago" class="form-control input-sm forma-pago fp'+num_forma_pago+'">'+
+                                '<option value="">- Seleccione -</option>'+
+                                '<option value="30">Aplicación de anticipos</option>'+
+                                '<option value="01">Efectivo</option>'+
+                                '<option value="02">Cheque</option>'+
+                                '<option value="03">Transferencia Electrónico de fondos</option>'+
+                                '<option value="04">Tarjeta de Credito</option>'+
+                                '<option value="28">Tarjeta de Debito</option>'+
+                                '<option value="99">Por definir</option>'+
+                            '</select>'+
+                        '</div>'+
+
+                        '<div class="col-md-6 form-group total-formas">'+
+                            '<input type="text" name="cantidad_pago" class="form-control input-sm cantidad-pago fp'+num_forma_pago+'" />'+
+                        '</div>'+
+                    '</div>'
+                )
+
+            
+                num_forma_pago++;
+            }
+        }
+    })
+
+    $(document).on('change', '.forma-pago', function(){
+        tot_forma = $('.total-formas').children('input').length
+
+        total = $('#total').val()
+        total = total.replace(/,/g, '');
+        total = parseFloat(total)
+
+        subtotal = 0;
+
+        $('.total-formas').children('input').each(function(index){
+            if($(this).val() != '' && (tot_forma-1) != index)
+                subtotal = parseFloat(subtotal) + parseFloat($(this).val())          
+        })
+
+        tot_forma = $('.total-formas').children('input').length
+
+        if(tot_forma == 1){
+            $('.cantidad-pago.fp0').val(total)
+            $('.cantidad-pago.fp0').attr('max', total)
+        }else{
+
+            $('.forma-pago.fp'+(tot_forma-2)).attr('disabled', 'disabled')
+            $('.cantidad-pago.fp'+(tot_forma-2)).removeAttr('max')
+            $('.cantidad-pago.fp'+(tot_forma-2)).attr('disabled', 'disabled')
+            nvo_total = total - subtotal
+
+            $('.cantidad-pago.fp'+(tot_forma-1)).val(nvo_total.toFixed(2))
+            $('.cantidad-pago.fp'+(tot_forma-1)).attr('max', nvo_total.toFixed(2))
+        }
+    })
+
+    $(document).on('focus', '.cantidad-pago', function(){
+        max = parseFloat($(this).attr('max'))
+        $(this).keyup(function(){
+            cantidad = parseFloat($(this).val())
+
+            if(cantidad > max){
+                $(this).val(max)
+            }
+        })
     })
     
 //PRUEBAS
