@@ -1,14 +1,8 @@
 @extends('layouts.ventas')
 
 @section('content')
-    
-        {{ $_SESSION['e_sucursal'] }}
-        {{$persona}}
-        @if(!isset($persona))
-            <!-- poner redirect -->            
-        @endif
-
         {!! Form::token() !!}
+        {!!Form::hidden('tipo_movimiento', $movimiento, ['class'=>'tipo-movimiento'])!!}
         {!!Form::hidden('producto_series', $series, ['class'=>'producto-series'])!!}
         {!!Form::hidden('requerir_pagos', $pagos, ['class'=>'requerir-pagos'])!!}
         {!!Form::hidden('accion_inventario', $inventario, ['class'=>'accion-inventario'])!!}
@@ -78,7 +72,7 @@
                                             <td colspan="2">
                                                 <div class="articulo"></div>
                                                 <input type="hidden" id="codigo_series" />
-                                                <input type="hidden" id="fila_serie" />
+                                                <input type="hidden" id="fila_series" />
                                             </td>
                                         </tr>
                                         <tr>
@@ -126,7 +120,7 @@
                     @if($consecutivo == '')
                         {!!Form::text('folio', null, ['class'=>'form-control input-sm', 'required', 'autofocus'])!!}    
                     @else
-                        {!!Form::text('folio', $consecutivo + 1, ['class'=>'form-control input-sm', 'required'])!!}
+                        {!!Form::text('folio', $consecutivo, ['class'=>'form-control input-sm', 'required'])!!}
                     @endif
                 </div>
                 
@@ -151,7 +145,7 @@
             <div class="col-md-4 form-group">
                 {!!Form::label('usoCFDI', 'Uso CFDI', ['class'=>'col-md-4'])!!}
                 <div class="col-md-8">
-                    {!!Form::text('usoCFDI', null, ['class'=>'form-control input-sm', 'disabled'])!!}
+                    {!!Form::select('usoCFDI', $usoCFDI, null, ['class'=>'form-control input-sm', 'disabled'])!!}
                 </div>
             </div>
 
@@ -296,8 +290,6 @@
             </div>   
             
         </div>
-        <button type="button" class="btn btn-default" data-container="body" data-toggle="popover" data-placement="right" data-content="Vivamus sagittis lacus vel augue laoreet rutrum faucibus." id="ejemplo">
-  Popover on right
 </button>
 @endsection
 
@@ -306,15 +298,12 @@
     
     <script src="{{ asset('plugins/chosen-1.8.6/chosen.jquery.min.js') }}"></script>
 
-    <script src="{{ asset('assets/js/jquery.numeric.js') }}"></script>
+    <script src="{{ asset('venta/js/jquery.numeric.js') }}"></script>
     <script src="{{ asset('plugins/jquery-ui-1.12.1.custom/jquery-ui.min.js') }}"></script>
     <script src="{{ asset('venta/core/bootstrap.min.js') }}"></script>
     <script src="{{ asset('venta/js/app.js') }}"></script>
 
     <script>
-        $('#ejemplo').popover({
-            html: true
-        })
         //CLIENTE
             $(document).on('focus', '#cliente', function(){
                 cliente = $(this).val()
@@ -323,7 +312,7 @@
                 
                 $(this).keyup(function(e){
                     if(verifica){
-                        mensaje = confirm('¿Realmente desea cambiar de usuario?')
+                        mensaje = confirm('¿Realmente desea cambiar de cliente?')
                         
                         if(mensaje){
                             verifica = false
@@ -394,7 +383,7 @@
                         $.ajax({
                             url: "{!! route('ventas-clientes') !!}",
                             method: 'GET',
-                            datatype: 'json',
+                            datatype: 'xml',
                             data: {
                                 cliente: request.term
                             },
@@ -554,6 +543,8 @@
 
                                 $('#vendedor').append(
                                     '<option value="'+e.id_empleado+'">'+
+                                        //e.sucursal+' '+
+                                        //e.sucursal_multiple+' '+
                                         e.departamento+' - '+
                                         e.nombre+' '+e.apellido_p+' '+e.apellido_m+
                                     '</option>'
@@ -568,12 +559,12 @@
                             $('.referencias').css('display', 'none')
                             $('.referencias').html('')
                             $('.campo-ref').focus()    
-                        }else{
-                            busca_agente(agente)
                         }
                         
                     }
-                })
+                }).fail(function( jqXHR, textStatus ) {
+                    busca_agente(agente)
+                });
             }
         
         //REFERENCIAS
@@ -624,14 +615,14 @@
                                 
                                 //ref = 0
                                 $.each(c, function(i, v){
-                                    //if(v.vencido != 1){
+                                    if(v.vencido != 1){
                                         $('.referencias').append(
                                             '<option value="'+v.id_cotizacion+'">'+
                                                 'COT'+v.id_cotizacion+
                                             '</option>'
                                         )
                                         
-                                    //}
+                                    }
                                                                             
                                 })
 
@@ -1015,6 +1006,7 @@
 
                                         $.each(o, function(i, v){
                                             if(refSelected == v.id_reporte){
+
                                                 numFila = $(".frmFactura tbody tr").length;
                                                 agregar_orden_facturacion('OF'+v.folio_orden, v, numFila)
                                             }
@@ -1036,7 +1028,7 @@
                 }
 
                 $.ajax({
-                    url : 'http://www.decop.com/pruebas/interno/AI_Plantilla.php',
+                    url : 'http://www.decop.com/interno/AI_Plantilla.php',
                     method : 'GET',
                     dataType: 'html',
                     data: {
@@ -1066,6 +1058,7 @@
                             
                             agrega_fila_orden_factura(nuevo, ref)
 
+                            $('.notProduct').css('display','none')
                         }
                     }
                 })
@@ -1146,8 +1139,10 @@
                         })
                     },
                     select: function(event, ui){
+                        //$('.frmFormaPago').css('display', 'none')
+                        $('.inputFormaPago').html('')
+                        num_forma_pago = 1
 
-                        console.log(f)
                         codigo = ui.item.codigo
                         duplicado = buscar_duplicado(codigo)
                         requerir_serie = ui.item.serie;
@@ -1201,7 +1196,7 @@
             }
 
             //busca productos seleccionado
-            function busca_producto(url, referencia='', codigo, row, precio=0, cantidad=0, descuento=0, unidad=''){
+            function busca_producto(url, referencia='', codigo, row, precio=0, cantidad=0, descuento=0, unidad='', ref_promocion=''){
             	
                 if(codigo != undefined){
                     if(codigo.indexOf('-') != -1){
@@ -1228,6 +1223,9 @@
                                 }, 3000)
 
                             }else{
+                                $('.inputFormaPago').html('')
+                                num_forma_pago = 1
+                                
                                 $('.addComment'+'.'+row).css('display', 'block')
                                 $('.addCodSAT'+'.'+row).css('display', 'block')
                                 $('.addCodSAT'+'.'+row).attr('data-content', '<b>Codigo SAT</b> '+p.producto.codigo_sat)
@@ -1244,11 +1242,13 @@
 
                                 if(cantidad == 0){
                                     $('.'+row+'.cantidad').val(p.producto.cantidad)
-                                    add = agrega_producto_existencia(p.producto, row)
+                                    if(p.producto.inventariable == 'V')
+                                        add = agrega_producto_existencia(p.producto, row)
                                 }else{
                                     p.producto.cantidad = cantidad
                                     $('.'+row+'.cantidad').val(p.producto.cantidad)
-                                    add = agrega_producto_existencia(p.producto, row)
+                                    if(p.producto.inventariable == 'V')
+                                        add = agrega_producto_existencia(p.producto, row)
                                 }
 
                                 if(unidad == '')
@@ -1262,11 +1262,16 @@
                                 if(referencia == ''){
                                     $('.'+row+'.codigo').parents("tr").removeAttr('class')
                                     $('.'+row+'.codigo').parents("tr").addClass(codigo)
+
+                                }else if( referencia.indexOf('PROM') != -1){
+                                    $('.'+row+'.codigo').parents("tr").removeAttr('class')
+                                    $('.'+row+'.codigo').parents("tr").addClass(codigo+' '+referencia+' '+ref_promocion)
+                                    //$('.'+row+'.codigo').parents("tr").addClass(referencia)
                                 }else{
                                     
                                     $('.'+row+'.codigo').parents("tr").removeAttr('class')
-                                    $('.'+row+'.codigo').parents("tr").addClass(codigo)
-                                    $('.'+row+'.codigo').parents("tr").addClass(referencia)
+                                    $('.'+row+'.codigo').parents("tr").addClass(codigo+' '+referencia)
+                                    //$('.'+row+'.codigo').parents("tr").addClass(referencia)
                                 }
                                 
                                 $('.'+row+'.promocion').html(
@@ -1283,7 +1288,7 @@
                                     )
                                 })
                                 
-                                if(precio == 0){
+                                if(precio == 0 && referencia.indexOf('PROM') == -1){
                                     $('.'+row+'.precio').val(p.producto.precio)
                                     $('.'+row+'.precio').attr('min', p.producto.precio)
 
@@ -1291,7 +1296,7 @@
                                         precio_venta = parseFloat(p.producto.precio)
                                     else
                                         precio_venta = parseFloat(p.producto.precio) * parseFloat(p.producto.tipo_cambio)    
-                                }else if(precio != -1){
+                                }else if(precio != -1 || referencia.indexOf('PROM') != -1){
                                     if(p.producto.moneda_venta == 0){
                                         $('.'+row+'.precio').val(precio)
                                         $('.'+row+'.precio').attr('min', precio)
@@ -1306,16 +1311,17 @@
                                         if(referencia.indexOf('OF') != -1){
                                             $('.'+row+'.precio').val(precio)
                                             $('.'+row+'.precio').attr('min', p.producto.precio)
-                                            precio_venta = parseFloat(precio) * parseFloat(p.producto.tipo_cambio)
+                                            precio_venta = parseFloat(precio) * parseFloat(p.producto.tipo_cambio)    
+                                            
+                                            
                                         }else{
                                             precio1 = parseFloat(precio) / (1 - parseFloat(decto))
                                             precio2 = precio1 / parseFloat(p.producto.tipo_cambio)
+
                                             $('.'+row+'.precio').val(precio2.toFixed(3))
                                             $('.'+row+'.precio').attr('min', parseFloat(p.producto.precio).toFixed(3))
                                             precio_venta = parseFloat(precio2) * parseFloat(p.producto.tipo_cambio)
-                                        }
-
-                                            
+                                        }                                            
                                     }
                                     
                                 }
@@ -1341,7 +1347,6 @@
                                 )
 
                                 monto = obtener_monto(descuento, row)
-                                //monto = parseFloat(p.producto.cantidad) * parseFloat(precio_venta)
                                 
                                 $('.'+row+'.monto').html(
                                     '$ '+formatNumber.new(parseFloat(monto).toFixed(2))
@@ -1354,10 +1359,18 @@
                                     $.each(p.promociones, function(i, e){
 
                                         if(promSelected == e.id_promocion){
-                                            precio1 = parseFloat(e.precio) / (1 - parseFloat(e.descuento))
+                                            if(e.descuento.length == 1)
+                                                decto = '.0'+e.descuento
+                                            else
+                                                decto = '.'+e.descuento
+
+                                            precio1 = parseFloat(e.precio_2) / (1 - parseFloat(decto))
                                             precio2 = precio1 / parseFloat(p.producto.tipo_cambio)
+
+                                            min = $('.'+row+'.precio').attr('min')
+                                        
                                             $('.'+row+'.precio').val(precio2.toFixed(3))
-                                            $('.'+row+'.precio').attr('min', parseFloat(p.producto.precio).toFixed(3))
+                                            $('.'+row+'.precio').attr('min', p.producto.precio)
                                             precio_venta = parseFloat(precio2) * parseFloat(p.producto.tipo_cambio)
 
                                             $('.'+row+'.descuento').val(e.descuento)
@@ -1373,9 +1386,19 @@
                                             $('.'+row+'.monto').html(
                                                 '$ '+formatNumber.new(parseFloat(monto).toFixed(2))
                                             )
+
+                                            if(e.incluye != '' && e.incluye != ',' && referencia.indexOf('PROM') == -1){
+                                                incluye_producto_promocion(e, row, referencia)
+                                            }else{
+                                                elimina_fila($('.'+row+'.promocion'), codigo)
+                                            }
                                         
                                             calcular_totales()
-                                        }else{
+                                            
+                                                
+                                        }else if(promSelected == ''){
+                                            elimina_fila($('.'+row+'.promocion'), codigo)
+
                                             $('.'+row+'.precio').val(p.producto.precio)
                                             $('.'+row+'.precio').attr('min', p.producto.precio)
 
@@ -1406,9 +1429,10 @@
 
                                 $('.frmFormaPago').css('display', 'inline-block')
 
-                                if(add){
-                                    elimina_fila($('.'+row+'.cantidad'))  
-                                
+                                if(p.producto.inventariable == 'V'){
+                                    if(add){
+                                        elimina_fila($('.'+row+'.cantidad'))  
+                                    }
                                 }
                             }
                         }
@@ -1418,6 +1442,30 @@
                 })
             }
             
+            function incluye_producto_promocion(element, row, ref){
+
+                incluye = element.incluye.split(',')
+                $.each(incluye, function(i, v){
+                    if(v == ''){
+                        incluye.splice(i, 1)
+                    }
+                })
+
+                $.each(incluye, function(i, v){
+                    incluido = v.split('x')
+
+                    cod_include = incluido[1]
+                    cant_include = incluido[0]
+
+                    num = nvo_num_fila()
+                    nva_fila = 'f'+num;
+
+                    agregar_fila(num)
+                    
+                    busca_producto('{!! route('ventas-productos') !!}', 'PROM'+row+element.producto, cod_include, nva_fila, 0, cant_include, 0,'', ref) 
+                })
+            }
+
             function series_disponibles(codigo){
             	producto = codigo.split(' ')
                 var disponibles;
@@ -1569,34 +1617,65 @@
                         nvo_cliente = cliente
                     }
 
+                    tipo_mov = $('.tipo-movimiento').val();
+
+                    if(tipo_mov = 'FV'){
+                        mov = 1
+                    }
+
+
                     factura = {
                         id_factura: $('#folio').val(),
                         //sucursal: se obtiene en el controlador $_SESSION['sucursal']
                         cliente: nvo_cliente,
                         ubicacion: ubicacion,
-                        //fecha: se obtiene en el controlador 
-                        subtotal: $('#subtotal').val(),
-                        iva: $('#iva').val(),
+                        fecha: $('#fecha').val(),
+                        //subtotal: $('#subtotal').val(),
+                        //iva: $('#iva').val(),
                         importe: $('#total').val(),
                         //saldo: ??? se obtiene de forma de pago??
                         //fecha_vencimiento:  se calcula en el controlador obteniendo los dias de credito:
                         dias_credito: $('.dias_credito').val(),
                         cobrador: 0,
-                        //estado: como saber si ya se pago ??
+                        //estado: como saber si ya se pago ?? si el importe es igual a la suma de las formas de pago??
                         //fecha_estado: por default es la fecha de hoy, se actualiza en el controlador,
-                        //observacion: ??
-                        //contacto: ??
-                        //fecha_contacto: ??
+                        //contacto: 0
+                        //fecha_contacto: ''
                         vueltas: 0,
-                        //documento: cuando es factura,
-                        //documento_actual: ??,
+                        documento: mov,// cuando es factura,
+                        documento_actual: mov,// ??,
                         agente: $('.vendedor').val(),
-                        forma_pago: [],
+                        //agente_o: ??
+                        //descuentos: suma de descuentos?? desde aqui no
+                        //importes: ??
+                        //comisiones: ??
+                        //p_comisiones: ??
+                        //comision_sf: ??
+                        //comision_sc: ?? 
+                        //deudor: ??asta aqui no
+                        //e_entrega: empleado que realiza la factura??
+                        //f_entrega: fecha en que se realiza la factura??
+                        avisado: 'F',
+                        //uuid: donde se encuentra?? este no
+                        //fecha_timbre: yo lo necesito??
+                        //factura_enviada: ?? asta aqui no
+                        forma_pago: [], // la que tenga el mayor importe
+                        //cuenta_pago: ?? no se ocupa
+                        //orden_compra: ??
                     }
 
                     detalle_factura = new Array()
 
                     $('.frmFactura tbody tr').each(function(index){
+                       
+                        clase = $(this).attr('class')
+                        if(clase.indexOf(' ') != -1){
+                            clase = clase.split(' ')
+                            referencia = clase[1];
+                        }else{
+                            referencia = ''
+                        }
+
                         $(this).children('td').each(function(index1){
                             switch(index1){
                                 case 1:
@@ -1617,20 +1696,24 @@
                                     tipo= $(this).text().split('/')
                                     tipo_cambio = tipo[1]
                                 case 6:
-                                    
-                                    descuento: $(this).children('input').val()
+                                    if($(this).children('input').val() != undefined)
+                                        descuento =  $(this).children('input[type=text]').val()
                                     break
                             }
                         })
 
+
                         detalle = {
+                            //id_detalle: automatico??
                             factura_venta: factura.id_factura,
                             producto: producto,
+                            referencia: referencia,
                             cantidad: cantidad,
                             precio: precio,
                             descuento: descuento,
                             tipo_cambio: tipo_cambio,
                             autoriza: autoriza
+
                         }
                         detalle_factura.push(detalle)
                     })
@@ -1645,17 +1728,34 @@
                                     alert('Debe de seleccionar una forma de pago.')
                             }else{
                                 factura.forma_pago.push(forma)
+
+                                
                             }
                                 
                         })
+
                     }
-                    
 
-
+                    token = $('input[name="_token"]').val()
+                    $.post(
+                        '{{ route('ventas-guardar-factura') }}',
+                        {
+                            _token: token,
+                            factura: factura,
+                            detalle_factura, detalle_factura
+                        },
+                        function(data){
+                            var w = window.open('about:blank');
+                            w.document.open()
+                            w.document.write(data)
+                            w.document.close()
+                        }
+                    )
                     
                 }
             }
 
+            
 
     </script>
    
