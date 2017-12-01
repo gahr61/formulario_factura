@@ -7,6 +7,7 @@
         comment_showed = []
     //cliente
         var cliente = '';
+        var tipo_cliente;
         var ubicacion = ''; //direccion de envio en cotizacion
         verifica = false;
 
@@ -380,7 +381,7 @@
 
         //busca cotiazciones
         $(document).on('click', '.btnCotizacion', function(){
-            buscar_cotizacion(cliente, ubicacion);
+            buscar_cotizacion(cliente, tipo_cliente, ubicacion);
         })
 
         //busca pedidos

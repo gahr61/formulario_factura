@@ -418,6 +418,7 @@
                         llenar_popover('datos_cliente', 'cliente_over', 'popover-cliente', 'Facturado a', ui.item);
 
                         cliente = ui.item.id_cliente
+                        tipo_cliente = ui.item.tipo
 
                         $('.dias_credito').val(ui.item.dias_credito).trigger('chosen:updated')
 
@@ -571,7 +572,11 @@
         //COTIZACIONES
             //llena el select con las cotizaciones del cliente seleccionado y de la direccion de envio
             var referencias = [];
-            function buscar_cotizacion(cliente, ubicacion){
+            function buscar_cotizacion(cliente, tipo, ubicacion){
+                console.log(tipo)
+                if(tipo != 7){
+                    ubicacion = ''
+                }
                 if(cliente.indexOf('-') != -1){
                     aux_cliente = cliente.split(' - ')
                     nvo_cliente = aux_cliente[0]
