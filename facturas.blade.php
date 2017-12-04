@@ -376,6 +376,9 @@
                 })                
             })
 
+            /*
+                funcion que permite obtener el cliente escribiendo su nombre o numero de cliente
+            */
             function autocomplete_cliente(input){
                 $(input).autocomplete({
                     source: function(request, response){
@@ -446,6 +449,7 @@
                 })
             }
 
+            //busca las direcciones de envio que tiene el cliente
             function busca_direcciones(cliente, item){
                 $.ajax({
                     url:'{!! route('ventas-direccion') !!}',
@@ -529,6 +533,7 @@
                 })
             }
 
+            //busca el los vendedores por sucursal, seleccionando por default el agente que atendio al cliente
             function busca_agente(agente){
 
                 $.ajax({
@@ -544,8 +549,6 @@
 
                                 $('#vendedor').append(
                                     '<option value="'+e.id_empleado+'">'+
-                                        //e.sucursal+' '+
-                                        //e.sucursal_multiple+' '+
                                         e.departamento+' - '+
                                         e.nombre+' '+e.apellido_p+' '+e.apellido_m+
                                     '</option>'
@@ -563,7 +566,7 @@
                         }
                         
                     }
-                }).fail(function( jqXHR, textStatus ) {
+                }).fail(function( jqXHR, textStatus ) { //si la consulta falla se intenta buscar de nuevo el agente
                     busca_agente(agente)
                 });
             }
@@ -572,8 +575,11 @@
         //COTIZACIONES
             //llena el select con las cotizaciones del cliente seleccionado y de la direccion de envio
             var referencias = [];
+            /*
+                busca las cotizaciones de cada cliente, si el cliente es diferente de tipo 7, se obtienen todas las cotizaciones
+                independientemente de la ubicacion, si es igual a tipo 7 se busca por ubicacion
+            */
             function buscar_cotizacion(cliente, tipo, ubicacion){
-                console.log(tipo)
                 if(tipo != 7){
                     ubicacion = ''
                 }
@@ -669,12 +675,13 @@
                                             referencias = $(this).val();
                                             refSelected = params.selected
 
+                                            prod_existencia = 0
                                             $.each(c, function(i, v){
                                                 if(refSelected == v.id_cotizacion){
                                                     numFila = $(".frmFactura tbody tr").length;
 
                                                     //nvo_agregar_datos_cotizacion('COT'+v.id_cotizacion, v, numFila)
-                                                    agregar_datos_cotizacion('COT'+v.id_cotizacion, v, numFila)
+                                                    agregar_datos_cotizacion('COT'+v.id_cotizacion, v)
                                                 }
                                             })
                                         }
@@ -688,6 +695,7 @@
                 })
             }
 
+            //se obtienen los accesorios de cada producto que se encuentra en la cotizacion
             function obtener_accesorios(series){
                 token = $('input[name="_token"]').val()
 
@@ -709,54 +717,75 @@
                 return rel;
             }
 
-            function agregar_datos_cotizacion(tipoRef, datos, numFila){
+            /*
+                funcion que obtiene los datos de la cotizacion para agregar las filas a la factura
+                recibe como parametris
+                tipoRef = numero de cotizacion (ej. COT149)
+                datos = datos de la cotizacion 
+            */
+            function agregar_datos_cotizacion(tipoRef, datos){
                 last_row = obtener_ultima_fila();
                 
+                //verifica que la ultima fila de la tabla se encuentre vacia
                 if(last_row.codigo == ''){
+
+                    //si la cotizacion es direfente a multimple y no tiene productos relacionados solo busca un producto
                     if(datos.producto != 'MULTIPLE' && datos.relacionados == ''){
                         busca_producto('{!! route('ventas-productos') !!}', tipoRef, datos.producto, last_row.f, datos.precio)
 
 
+                    //si la cotizacion es diferente de multiple y si tiene productos relacionados
                     }else if(datos.producto != 'MULTIPLE' && datos.relacionados != ''){
                         //lo agrega el la fila que este vacia
                         busca_producto('{!! route('ventas-productos') !!}', tipoRef, datos.producto, last_row.f, datos.precio)
 
-                        //buscar los relacionados
-                        accesorio = buscar_relacionados(datos)
+                        //verifica que el la existencia del producto sea diferente de 0 o diferente de null
+                        if(prod_existencia == 0 || prod_existencia == null){
+                        }else{                            
 
-                        //por cada relacionado obtiene el numero de la fila y le agrega uno
-                        agregar_fila_referencia(accesorio, tipoRef)
+                            //buscar los productos/accesorios/consumibles relacionados 
+                            accesorio = buscar_relacionados(datos)
 
+                            //por cada relacionado obtiene el numero de la fila y le agrega uno
+                            agregar_fila_referencia(accesorio, tipoRef)
+                        }  
+
+                    //si la cotizacion es multimple
                     }else if(datos.producto == 'MULTIPLE'){
                         agregar_fila_referencia_multiple(tipoRef, datos, last_row.f)
                     }
-                }else{
-                    if(datos.producto != 'MULTIPLE' && datos.relacionados == ''){
-                        nueva_fila_referencia(tipoRef, datos)
+                }else{ //si la ultima fila no se encuentra vacia
+                    if(datos.producto != 'MULTIPLE' && datos.relacionados == ''){ 
+                        nueva_fila_referencia(tipoRef, datos) //agrega una nueva fila
 
                     }else if(datos.producto != 'MULTIPLE' && datos.relacionados != ''){
-                        nueva_fila_referencia(tipoRef, datos)
-                
-                        //buscar los relacionados
-                        accesorio = buscar_relacionados(datos)
+                        nueva_fila_referencia(tipoRef, datos)   //agrega una nueva fila
 
-                        //por cada relacionado obtiene el numero de la fila y le agrega uno
-                        agregar_fila_referencia(accesorio, tipoRef)
+                        if(prod_existencia == 0 || prod_existencia == null){
+                        }else{                            
+                            //buscar los relacionados
+                            accesorio = buscar_relacionados(datos)
+
+                            //por cada relacionado obtiene el numero de la fila y le agrega uno
+                            agregar_fila_referencia(accesorio, tipoRef)
+                        }
 
                     }else if(datos.producto == 'MULTIPLE'){
+                        //obtiene el numeri de la nueva fila
                         num = nvo_num_fila()
                         nva_fila = 'f'+num;
 
-                        agregar_fila(num)
+                        agregar_fila(num) //agrega una nueva fila
 
                         agregar_fila_referencia_multiple(tipoRef, datos, nva_fila)
 
                     }
                 }
 
-                $('.notProduct').css('display','none')
+                $('.notProduct').css('display','none') //oculta el boton de comentario
             }
 
+            //agrega una nueva fila de cualquier referencia
             function nueva_fila_referencia(tipoRef, datos){
                 num = nvo_num_fila()
                 nva_fila = 'f'+num;
@@ -768,10 +797,12 @@
 
             //agrega los accesorios relacionados con la referencia seleccionada
             function agregar_fila_referencia(accesorio, tipoRef){
+
                 $.each(accesorio, function(i, a){
+                    cont = 0
                     $.each(series_relacionados, function(j, sr){
                         precio = sr.split(',')
-                        if(sr.indexOf(a.id_producto) != -1 && precio[1] != -1){
+                        if(sr.indexOf(a.id_producto) != -1 && precio[1] != -1){ //si el producto se encuentra en los relacionados y el precio es diferente de -1
                             //obtener el numero de la nueva fila
                             num = nvo_num_fila()
                             nva_fila = 'f'+num;
@@ -782,11 +813,14 @@
                             precio_relacionado = precio[1]
 
                             busca_producto('{!! route('ventas-productos') !!}', tipoRef, a.id_producto, nva_fila, precio_relacionado) 
-                            
                         }
+                        
                     })
+                    cont++ 
                 })
+
             }
+
 
             //agrega nueva fila donde la referencia cuente con valor de  producto igual a multiple
             function agregar_fila_referencia_multiple(tipoRef, datos, f){
@@ -796,8 +830,11 @@
                 descuentos  = datos.descuentos.split(',')
                 unidades    = datos.unidades.split(',')
 
+                
                 busca_producto('{!! route('ventas-productos') !!}', tipoRef, series[0], f, precios[0], cantidades[0], descuentos[0], unidades[0])
 
+
+                //recorre los codigos de producto de la cotizacion multiple
                 $.each(series, function(i, sc){
 
                     if(sc != '' && i != 0){
@@ -933,6 +970,7 @@
             }
 
         //ORDENES DE FACTURACION
+            
             function busca_ordenes_facturacion(cliente, ubicacion){
                 if(cliente.indexOf('-') != -1){
                     aux_cliente = cliente.split(' - ')
@@ -1228,6 +1266,8 @@
                                 }, 3000)
 
                             }else{
+                                prod_existencia = p.producto.existencia
+
                                 $('.inputFormaPago').html('')
                                 num_forma_pago = 1
                                 

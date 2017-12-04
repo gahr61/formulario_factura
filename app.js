@@ -18,6 +18,7 @@
         add = new Array()
         autoriza = 0;
         num_forma_pago = 1
+        prod_existencia = 0
 
     //referencias
         existencia_producto = []
@@ -306,8 +307,7 @@
                         }
                     }
                 })
-            }
-            
+            }          
         }
       
         function eliminar_fila_referencia(ref){
@@ -355,8 +355,7 @@
                 return contenido_fila;
             }else{
                 return 0
-            }
-                
+            }           
         }
 
         //busca los accesorios del campo relacionados del producto de la cotizacion
@@ -1688,7 +1687,6 @@
         subtotal = 0;
 
         $('.total-formas').children('input').each(function(index){
-            //if($(this).val() != '' && (tot_forma-1) != index){
             if($(this).val() != ''){
                 subtotal = parseFloat(subtotal) + parseFloat($(this).val())
                 
@@ -1712,8 +1710,7 @@
                     $('.btnEliminaFormaPago.'+f).css('display', 'block')
                 }
             
-        })
-        
+        })       
     })
 
     $(document).on('focus', '.cantidad-pago', function(){
@@ -1725,6 +1722,11 @@
                 $(this).val(max)
             }
         })
+    })
+
+    $(document).on('click', '.btnEliminaFormaPago', function(){
+        f = obtener_clase($(this))
+        $('.'+f).remove()
     })
     
 //PRUEBAS
@@ -1739,10 +1741,3 @@
 
         formulario_series_venta(f, producto, cantidad)
     })
-
-    $(document).on('click', '.btnEliminaFormaPago', function(){
-        f = obtener_clase($(this))
-        $('.'+f).remove()
-    })
-    
-
