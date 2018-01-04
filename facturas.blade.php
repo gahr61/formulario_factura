@@ -136,23 +136,6 @@
 
         <div class="row">
             <div class="col-md-4 form-group">
-                {!!Form::label('dias_credito', 'Dias de credito', ['class'=>'col-md-4'])!!}
-                <div class="col-md-8">
-                    {!!Form::select('dias_credito', [], null, ['class'=>'form-control dias_credito'])!!}    
-                </div>
-            </div>
-
-            <div class="col-md-4 form-group">
-                {!!Form::label('usoCFDI', 'Uso CFDI', ['class'=>'col-md-4'])!!}
-                <div class="col-md-8">
-                    {!!Form::select('usoCFDI', $usoCFDI, null, ['class'=>'form-control input-sm', 'disabled'])!!}
-                </div>
-            </div>
-
-        </div>
-
-        <div class="row">
-            <div class="col-md-4 form-group">
                 @if($persona == 'C')
                     {!!Form::label('cliente', 'Cliente')!!}
                     <div class="loading-cliente"></div>
@@ -191,6 +174,18 @@
                 {!!Form::hidden('ref', 0, ['class'=>'ref-hide'])!!}
                 {!!Form::text('campo-ref', null, ['class'=>'form-control input-sm campo-ref', 'placeholder'=>'Presione F6 para realizar la busqueda de referencia'])!!}
                 {!!Form::select('referencias', [], null, ['class'=>'form-control input-sm referencias', 'multiple', 'id'=>'referencias', 'placeholder'=>'seleccione'])!!}
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-4 form-group">
+                {!!Form::label('dias_credito', 'Dias de credito')!!}
+                {!!Form::select('dias_credito', [], null, ['class'=>'form-control dias_credito'])!!}    
+            </div>
+
+            <div class="col-md-4 form-group">
+                {!!Form::label('usoCFDI', 'Uso CFDI')!!}
+                {!!Form::select('usoCFDI', $usoCFDI, null, ['class'=>'form-control input-sm uso-cfdi', 'disabled'])!!}
             </div>
         </div>
 
@@ -233,19 +228,19 @@
                         </div>
                         <hr>
                         <div class="row">
-                            <div class="col-md-8">
+                            <div class="col-md-9">
                                 <div class="row frmFormaPago" style="display: none">
                                     <label class="col-md-12" style="text-align: center;">Forma de pago</label>
-                                    <div class="col-md-3 form-group">
+                                    <div class="col-md-2 form-group">
                                         <a class="btn btn-info formaPago">Agregar formaPago</a>
                                     </div>
-                                    <div class="inputFormaPago col-md-9">
+                                    <div class="inputFormaPago col-md-10">
                                     </div>
                                 </div>
                                     
                             </div>
                             
-                            <div class="col-md-4 form-group">
+                            <div class="col-md-3 form-group">
                                 <div class="operaciones">
                                     <div class="row form-group enganche" style="display: none;">
                                         {!!Form::label('enganche', 'Enganche', ['class'=>'col-md-4'])!!}
@@ -286,11 +281,19 @@
                         </div>
 
                     </div>
+
+                    <hr>
+
+                    <div class="container-fluid final-form" style="display: none">
+                        <label>Forma de pago de factura</label>
+                        <div class="forma-pago-final">
+                            
+                        </div>
+                    </div>
                 </fieldset>
             </div>   
             
         </div>
-</button>
 @endsection
 
 @section('scripts')    
@@ -307,9 +310,10 @@
         //CLIENTE
             $(document).on('focus', '#cliente', function(){
                 cliente = $(this).val()
-                verifica = verificar_tabla_producto()
+                verifica = verificar_tabla_producto() // verifica  si existe algun producto agregado para facturar
                 no_autocomplete = false;
                 
+                //si se ingreso un cliente y se desea cambiar se verifica si no se habian agregado productos, si se agregaron elimina los productos y se reinicia el proceso de facturacion, si no se desea cambiar el cliente se dejan las cosas 
                 $(this).keyup(function(e){
                     if(verifica){
                         mensaje = confirm('¿Realmente desea cambiar de cliente?')
@@ -344,7 +348,17 @@
                             $(".referencias").chosen("destroy");
                             $('.referencias').css('display', 'none')
                             $('.referencias').html('')
+                            referencias = []
 
+                            $('.btns').html(
+                                '<a class="btn btn-primary addProduct" disabled>Agregar Producto</a> '+
+                                '<a class="btn btn-info notProduct" disabled>Agregar Comentario</a>'
+                            )
+
+                            $('.frmFormaPago').css('display', 'none')
+                            $('.final-form').css('display', 'none')
+                            $('.forma-pago-final').html('')
+                            $('.inputFormaPago').html('')
                             no_autocomplete = false
 
                         }else{
@@ -535,7 +549,6 @@
 
             //busca el los vendedores por sucursal, seleccionando por default el agente que atendio al cliente
             function busca_agente(agente){
-
                 $.ajax({
                     url: '{!! route('ventas.agente') !!}',
                     method: 'GET',
@@ -659,7 +672,6 @@
                                     
                                     $('.chosen-container-multi').css('width', '100%')
                                     
-                                    $('.referencias').focus()
 
                                     //al seleccionar una referencia se van a obtener los datos                                
                                     $(document).on('change', '.referencias', function(e, params){
@@ -736,19 +748,29 @@
 
                     //si la cotizacion es diferente de multiple y si tiene productos relacionados
                     }else if(datos.producto != 'MULTIPLE' && datos.relacionados != ''){
+                        
                         //lo agrega el la fila que este vacia
-                        busca_producto('{!! route('ventas-productos') !!}', tipoRef, datos.producto, last_row.f, datos.precio)
+                        aux_existencia = busca_producto('{!! route('ventas-productos') !!}', tipoRef, datos.producto, last_row.f, datos.precio) || 0
+
 
                         //verifica que el la existencia del producto sea diferente de 0 o diferente de null
-                        if(prod_existencia == 0 || prod_existencia == null){
-                        }else{                            
-
+                        if(aux_existencia != 0){
                             //buscar los productos/accesorios/consumibles relacionados 
                             accesorio = buscar_relacionados(datos)
-
                             //por cada relacionado obtiene el numero de la fila y le agrega uno
                             agregar_fila_referencia(accesorio, tipoRef)
-                        }  
+
+                            $('.notProduct').css('display','none')
+
+                        }else{
+                            num_fila = $('.frmFactura tbody tr').length
+                           
+                            if(num_fila == 1 &&  last_row.codigo == ''){
+                                $('.frmFormaPago').css('display', 'none')
+                                $('.final-form').css('display', 'none')
+                                //$('.notProduct').css('display','inline-block')
+                            }
+                        }
 
                     //si la cotizacion es multimple
                     }else if(datos.producto == 'MULTIPLE'){
@@ -782,22 +804,27 @@
                     }
                 }
 
-                $('.notProduct').css('display','none') //oculta el boton de comentario
+                //$('.notProduct').css('display','none') //oculta el boton de comentario
             }
 
             //agrega una nueva fila de cualquier referencia
             function nueva_fila_referencia(tipoRef, datos){
-                num = nvo_num_fila()
-                nva_fila = 'f'+num;
-                                        
-                agregar_fila(num)
-                
-                busca_producto('{!! route('ventas-productos') !!}', tipoRef, datos.producto, nva_fila, datos.precio, datos.cantidad) 
+                last_row = obtener_ultima_fila();
+
+                if(last_row.codigo == ''){
+                    prod = busca_producto('{!! route('ventas-productos') !!}', tipoRef, datos.producto, last_row.f, datos.precio, datos.cantidad) 
+                }else{
+                    num = nvo_num_fila()
+                    nva_fila = 'f'+num;
+                                            
+                    agregar_fila(num)
+
+                    prod = busca_producto('{!! route('ventas-productos') !!}', tipoRef, datos.producto, nva_fila, datos.precio, datos.cantidad) 
+                }
             }
 
             //agrega los accesorios relacionados con la referencia seleccionada
             function agregar_fila_referencia(accesorio, tipoRef){
-
                 $.each(accesorio, function(i, a){
                     cont = 0
                     $.each(series_relacionados, function(j, sr){
@@ -812,44 +839,59 @@
                             precio = sr.split(',')
                             precio_relacionado = precio[1]
 
-                            busca_producto('{!! route('ventas-productos') !!}', tipoRef, a.id_producto, nva_fila, precio_relacionado) 
+                            aux_existencia = busca_producto('{!! route('ventas-productos') !!}', tipoRef, a.id_producto, nva_fila, precio_relacionado) 
                         }
                         
                     })
                     cont++ 
                 })
 
-            }
+                if(accesorio.length == cont && aux_existencia){
+                    verifica_precios(tipoRef)
 
+                }
+            }
 
             //agrega nueva fila donde la referencia cuente con valor de  producto igual a multiple
             function agregar_fila_referencia_multiple(tipoRef, datos, f){
                 series      = datos.caracteristicas.split(',')
                 precios     = datos.relacionados.split(',')
                 cantidades  = datos.garantia.split(',')
-                descuentos  = datos.descuentos.split(',')
-                unidades    = datos.unidades.split(',')
-
+                descuentos  = datos.descuentos ? datos.descuentos.split(',') : 0
+                unidades    = datos.unidades ? datos.unidades.split(',') : ''
+                cont        =  0
                 
-                busca_producto('{!! route('ventas-productos') !!}', tipoRef, series[0], f, precios[0], cantidades[0], descuentos[0], unidades[0])
-
-
+                aux_existencia = busca_producto('{!! route('ventas-productos') !!}', tipoRef, series[0], f, precios[0], cantidades[0], descuentos[0], unidades[0]) || 0
+                
                 //recorre los codigos de producto de la cotizacion multiple
                 $.each(series, function(i, sc){
-
                     if(sc != '' && i != 0){
+                        last_row = obtener_ultima_fila()
+
                         num = nvo_num_fila()
                         nva_fila = 'f'+num;
 
-                        agregar_fila(num)
+                        if(last_row.f != nva_fila){
+                            agregar_fila(num)
+                        }
 
-                        busca_producto('{!! route('ventas-productos') !!}', tipoRef, sc, nva_fila, precios[i], cantidades[i], descuentos[i], unidades[i])
+                        aux_existencia = busca_producto('{!! route('ventas-productos') !!}', tipoRef, sc, nva_fila, precios[i], cantidades[i], descuentos[i], unidades[i])
                     }
+                    cont++;
                 })
 
+                if(series.length == cont && aux_existencia != 0){
+                    verifica_precios(tipoRef)
+
+                    num_fila = $('.frmFactura tbody tr').length
+                
+                    $('.frmFormaPago').css('display', 'block')
+                    $('.final-form').css('display', 'block')
+                }
             }
 
         //PEDIDOS
+            //busca los pedidos de un cliente 
             function busca_pedido(cliente, ubicacion){
                 if(cliente.indexOf('-') != -1){
                     aux_cliente = cliente.split(' - ')
@@ -939,6 +981,7 @@
                 })
             }
 
+            //agrega los productos de cada pedido a la tabla de productos
             function agregar_datos_pedido(ref, datos, numFila){
                 last_row = obtener_ultima_fila();
 
@@ -949,7 +992,8 @@
                             d.precio = d.subtotal
                             d.cantidad = d.cantidad
 
-                            nueva_fila_referencia(ref, d)
+                            busca_producto('{!! route('ventas-productos') !!}', ref, d.id_producto, last_row.f, d.subtotal)    
+                            //nueva_fila_referencia(ref, d)
                         }else{
 
                             busca_producto('{!! route('ventas-productos') !!}', ref, d.id_producto, last_row.f, d.subtotal)    
@@ -969,8 +1013,8 @@
                 }
             }
 
-        //ORDENES DE FACTURACION
-            
+        //ORDENES DE FACTURACION 
+            //busca las ordenes de facturacion de un cliente 
             function busca_ordenes_facturacion(cliente, ubicacion){
                 if(cliente.indexOf('-') != -1){
                     aux_cliente = cliente.split(' - ')
@@ -1033,7 +1077,7 @@
                                 
                                 $('.referencias').focus()
 
-                                //al seleccionar una referencia se van a obtener los datos                                
+                                //al seleccionar una referencia se van a obtener los datos
                                 $(document).on('change', '.referencias', function(e, params){
                                     if(params.deselected){ 
                                         referencias = $(this).val();
@@ -1063,15 +1107,16 @@
                 })
             }
 
+            //una vez seleccionada la orden de facturacion se obtienen los datos de un script de intranet
             function agregar_orden_facturacion(ref, datos, row){
                 if(datos.estado_reporte.indexOf('F') != -1 || datos.estado_reporte.indexOf('N') != -1 || datos.estado_reporte.indexOf('C') != -1 || datos.estado_reporte.indexOf('O') != -1){
                     previa = false
                 }else{
-                    previa = 'on'
+                    previa = true
                 }
 
                 $.ajax({
-                    url : 'http://www.decop.com/interno/AI_Plantilla.php',
+                    url : 'http://www.decop.com/pruebas/interno/AI_Plantilla.php',
                     method : 'GET',
                     dataType: 'html',
                     data: {
@@ -1084,6 +1129,8 @@
                         if(orden.indexOf('ERROR 214') != -1){
                             alert('No se ha terminado el reporte, por lo tanto no se puede imprimir Orden de Facturación')
                         }else{
+
+                            //se obtienen los datos de la orden de facturacion
                             inicio = orden.indexOf("<textarea name='holdtext' COLS=57 ROWS=10 onFocus='this.select()'>")  
                             fin = orden.indexOf('</textarea')
                             nuevo = orden.substring(inicio, fin)
@@ -1093,13 +1140,84 @@
 
                             $.each(nuevo, function(i,n){
                                 if(n != undefined){
-                                    if(n.length == 0 || n.length == 1)
+                                    if(n.length == 0 || n.length == 1) {
                                         nuevo.splice(i, 1)
+                                    }
                                 }
                             })
+
                             nuevo.splice(0, 1)
+                            if(nuevo[1].indexOf('RENTA') != -1){
+                                if(nuevo[2].indexOf('RENTA DE EQUIPO') != -1){
+                                    nuevo.splice(2, 1)
+                                }
+                                
+                            }
+
+                            //se obtienen los comentarios de la orden de facturacion
+                            inicio = orden.indexOf('<textarea id="comentarios_orden" COLS=57 ROWS=10>')
+                            fin = orden.indexOf('<p class="termina_comentarios"></p>')
+                            comments_orden = orden.substring(inicio, fin)
+                            comments_orden = comments_orden.replace('<textarea id="comentarios_orden" COLS=57 ROWS=10>', '')
+                            comments_orden = comments_orden.replace('</textarea>', '')
+                            comments_orden = comments_orden.replace('<br>', '')
+                            comments_orden = comments_orden.split('\n')
+
+                            nvo_comment_order = []
+                            $.each(comments_orden, function(i, o){
+                                if(o != undefined){
+                                    if(i == 0){
+                                        report = comments_orden[i+1].split(' ')
+                                        quitar_espacio(report)
+
+                                        var nvo_report;
+                                        if(report.length == 2){
+                                            if(report[0].indexOf('O.F') != -1){
+                                                nvo_report = report[1]
+                                            }else if(report[1].indexOf('O.F') != -1){
+                                                nvo_report = report[0]
+                                            }
+
+                                        }else if(report.length == 4){
+                                            if(report[0].indexOf('O.F') != -1){
+                                                nvo_report = report[2]+' '+report[3]
+                                            }else if(report[2].indexOf('O.F') != -1){
+                                                nvo_report = report[0]+' '+report[1]
+                                            }
+                                        }
+                                        
+                                        nvo_comment_order.push(comments_orden[i]+' '+nvo_report+' '+comments_orden[i+2])
+                                    }
+                                    if(i%3 == 0 && i > 1){
+                                        
+                                        if(comments_orden[i+1] != undefined){
+                                            report = comments_orden[i+1].split(' ')
+                                            quitar_espacio(report)
+                                            var nvo_report;
+                                            if(report.length == 2){
+                                                if(report[0].indexOf('O.F') != -1){
+                                                    nvo_report = report[1]
+                                                }else if(report[1].indexOf('O.F') != -1){
+                                                    nvo_report = report[0]
+                                                }
+                                            }else if(report.length == 4){
+                                                if(report[0].indexOf('O.F') != -1){
+                                                    nvo_report = report[2]+' '+report[3]
+                                                }else if(report[2].indexOf('O.F') != -1){
+                                                    nvo_report = report[0]+' '+report[1]
+                                                }
+                                            }
+            
+                                            nvo_comment_order.push(comments_orden[i]+' '+nvo_report+' '+comments_orden[i+2])
+                                        }
+                                            
+                                    }
+                                }
+                                    
+                            })
                             
-                            agrega_fila_orden_factura(nuevo, ref)
+                            //agrega los datos de la orden de facturacion a la tabla de productos
+                            agrega_fila_orden_factura(nuevo, ref, nvo_comment_order)
 
                             $('.notProduct').css('display','none')
                         }
@@ -1107,6 +1225,18 @@
                 })
             }
 
+            //quita los espacions de una arreglo
+            function quitar_espacio(cadena){
+                $(cadena).each(function(i, c){
+                    if(c.length == 0){
+                        cadena.splice(i, 1)
+                        quitar_espacio(cadena)
+                    }
+
+                })
+            }
+
+            //agrega una los datos de cada elemento de la orden de facturacion
             function nva_con_codigo(row, datos, d, i, ref){
                 solo_val = d.split('    ')
                 $.each(solo_val, function(i, v){
@@ -1116,14 +1246,24 @@
                     }
                 })
 
-                codigo = solo_val[0]
-                precio = solo_val[1].replace(' ', '')
-                cantidad = datos[i-1].substring(0, 1)
-                descuento = datos[i+1]
+                codigo = solo_val[0]               
+                if(codigo == 'RENTA'){
+                    precio = solo_val[1].replace(' ', '')
+                    nvo_precio = precio.replace(',', '')
+                    punto = datos[i-1].indexOf('.')
+                    cantidad = datos[i-1].substring(0, punto)
+                    descuento = 0
 
-                busca_producto('{!! route('ventas-productos') !!}', ref, codigo, f, precio, cantidad, descuento)
+                    busca_producto('{!! route('ventas-productos') !!}', ref, codigo, f, nvo_precio, cantidad, descuento)
+                }else{
+                    precio = solo_val[1].replace(',', '')    
+                    punto = datos[i-1].indexOf('.')
+                    cantidad = datos[i-1].substring(0, punto)
+                    descuento = datos[i+1]
+
+                    busca_producto('{!! route('ventas-productos') !!}', ref, codigo, f, precio, cantidad, descuento)
+                }
             }
-
 
         //PRODUCTO
             //acciones del campo codigo
@@ -1240,7 +1380,6 @@
 
             //busca productos seleccionado
             function busca_producto(url, referencia='', codigo, row, precio=0, cantidad=0, descuento=0, unidad='', ref_promocion=''){
-            	
                 if(codigo != undefined){
                     if(codigo.indexOf('-') != -1){
                         producto = codigo.split(' - ')
@@ -1248,247 +1387,309 @@
                     }
                 }
                 
-                $.ajax({
-                    url: url,
-                    method: 'GET',
-                    datatype: 'json',
-                    data: {
-                        obtener: codigo
-                    },
-                    success: function(p, textStatus, xhr){
-                            
-                        if(xhr.status == 200){
-                            
-                            if(p.length == 0){
-                                $('.loading-producto.'+row).html('No se encontraron resultados')
-                                setTimeout(function(){
-                                    $('.loading-producto.'+row).html('')        
-                                }, 3000)
+                clase_fila = ''
+                repetida = false
+                //verificar que no se encuentre en la fila anterior
+                $('.frmFactura tbody tr').each(function(i, t){
+                    if($(this).attr('class') != undefined){
+                        clase_fila = $(this).attr('class')
 
-                            }else{
-                                prod_existencia = p.producto.existencia
+                        buscados = codigo+' '+referencia
 
-                                $('.inputFormaPago').html('')
-                                num_forma_pago = 1
+                        if(clase_fila.indexOf(buscados) != -1){
+                            repetida = true
+                            return false
+                        }
+                    }
+                    
+                })
+
+                if(repetida == false){
+                    $.ajax({
+                        url: url,
+                        method: 'GET',
+                        datatype: 'json',
+                        data: {
+                            obtener: codigo
+                        },
+                        async: false,
+                        success: function(p, textStatus, xhr){
                                 
-                                $('.addComment'+'.'+row).css('display', 'block')
-                                $('.addCodSAT'+'.'+row).css('display', 'block')
-                                $('.addCodSAT'+'.'+row).attr('data-content', '<b>Codigo SAT</b> '+p.producto.codigo_sat)
+                            if(xhr.status == 200){
+                                
+                                if(p.length == 0){
+                                    $('.loading-producto.'+row).html('No se encontraron resultados')
+                                    setTimeout(function(){
+                                        $('.loading-producto.'+row).html('')        
+                                    }, 3000)
 
-                                //desbloquear campos
-                                $('.'+row+'.cantidad').removeAttr('disabled')
-                                $('.'+row+'.promocion').removeAttr('disabled')
-                                $('.'+row+'.precio').removeAttr('disabled')
-                                $('.'+row+'.descuento').removeAttr('disabled')
-
-                                $('.loading-producto.'+row).css('visibility', 'hidden')
-
-                                $('.'+row+'.codigo').val(p.producto.codigo+' - '+p.producto.descripcion)
-
-                                if(cantidad == 0){
-                                    $('.'+row+'.cantidad').val(p.producto.cantidad)
-                                    if(p.producto.inventariable == 'V')
-                                        add = agrega_producto_existencia(p.producto, row)
                                 }else{
-                                    p.producto.cantidad = cantidad
-                                    $('.'+row+'.cantidad').val(p.producto.cantidad)
-                                    if(p.producto.inventariable == 'V')
-                                        add = agrega_producto_existencia(p.producto, row)
-                                }
+                                    setTimeout(function(){
+                                        $('.loading-producto.'+row).html('')        
+                                    }, 500)
 
-                                if(unidad == '')
-                                    $('.unidad.'+row).html(p.producto.unidad_venta)
-                                else
-                                    $('.unidad.'+row).html(unidad)
+                                    prod_existencia = p.producto.existencia
 
-                                $('.pedir-series.'+row).val(p.producto.requerir_serie)
-                            
-                            
-                                if(referencia == ''){
-                                    $('.'+row+'.codigo').parents("tr").removeAttr('class')
-                                    $('.'+row+'.codigo').parents("tr").addClass(codigo)
-
-                                }else if( referencia.indexOf('PROM') != -1){
-                                    $('.'+row+'.codigo').parents("tr").removeAttr('class')
-                                    $('.'+row+'.codigo').parents("tr").addClass(codigo+' '+referencia+' '+ref_promocion)
-                                    //$('.'+row+'.codigo').parents("tr").addClass(referencia)
-                                }else{
+                                    $('.inputFormaPago').html('')
+                                    num_forma_pago = 1
                                     
-                                    $('.'+row+'.codigo').parents("tr").removeAttr('class')
-                                    $('.'+row+'.codigo').parents("tr").addClass(codigo+' '+referencia)
-                                    //$('.'+row+'.codigo').parents("tr").addClass(referencia)
-                                }
-                                
-                                $('.'+row+'.promocion').html(
-                                    '<option value="">'+
-                                        '- Seleccione -'+
-                                    '</option>'
-                                )
+                                    $('.addComment'+'.'+row).css('display', 'block')
+                                    $('.addCodSAT'+'.'+row).css('display', 'block')
+                                    $('.addCodSAT'+'.'+row).attr('data-content', '<b>Codigo SAT</b> '+p.producto.codigo_sat)
 
-                                $.each(p.promociones, function(i,v){
-                                    $('.'+row+'.promocion').append(
-                                        '<option value="'+v.id_promocion+'">'+
-                                            v.descripcion+
+                                    //desbloquear campos
+                                    $('.'+row+'.cantidad').removeAttr('disabled')
+                                    $('.'+row+'.promocion').removeAttr('disabled')
+                                    $('.'+row+'.precio').removeAttr('disabled')
+                                    $('.'+row+'.descuento').removeAttr('disabled')
+
+                                    $('.loading-producto.'+row).css('visibility', 'hidden')
+
+                                    //referencia
+                                    if(referencia == ''){
+                                        $('.'+row+'.codigo').parents("tr").removeAttr('class')
+                                        $('.'+row+'.codigo').parents("tr").addClass(codigo)
+
+                                    }else if( referencia.indexOf('PROM') != -1){
+                                        $('.'+row+'.codigo').parents("tr").removeAttr('class')
+                                        $('.'+row+'.codigo').parents("tr").addClass(codigo+' '+referencia+' '+ref_promocion)
+                                        //$('.'+row+'.codigo').parents("tr").addClass(referencia)
+                                    }else{
+                                        
+                                        $('.'+row+'.codigo').parents("tr").removeAttr('class')
+                                        $('.'+row+'.codigo').parents("tr").addClass(codigo+' '+referencia)
+                                        //$('.'+row+'.codigo').parents("tr").addClass(referencia)
+                                    }
+
+                                    //codigo
+                                    $('.'+row+'.codigo').val(p.producto.codigo+' - '+p.producto.descripcion)
+
+                                    //cantidad
+                                    if(cantidad == 0){
+                                        $('.'+row+'.cantidad').val(p.producto.cantidad)
+                                        if(p.producto.inventariable == 'V')
+                                            add = agrega_producto_existencia(p.producto, row)
+                                    }else{
+                                        p.producto.cantidad = cantidad
+                                        $('.'+row+'.cantidad').val(p.producto.cantidad)
+                                        if(p.producto.inventariable == 'V')
+                                            add = agrega_producto_existencia(p.producto, row)
+                                    }
+
+                                    //unidad
+                                    if(unidad == '')
+                                        $('.unidad.'+row).html(p.producto.unidad_venta)
+                                    else
+                                        $('.unidad.'+row).html(unidad)
+
+                                    $('.pedir-series.'+row).val(p.producto.requerir_serie)
+                                
+                                    //promocion
+                                    $('.'+row+'.promocion').html(
+                                        '<option value="">'+
+                                            '- Seleccione -'+
                                         '</option>'
                                     )
-                                })
-                                
-                                if(precio == 0 && referencia.indexOf('PROM') == -1){
-                                    $('.'+row+'.precio').val(p.producto.precio)
-                                    $('.'+row+'.precio').attr('min', p.producto.precio)
 
-                                    if(p.producto.moneda_venta == 0)
-                                        precio_venta = parseFloat(p.producto.precio)
-                                    else
-                                        precio_venta = parseFloat(p.producto.precio) * parseFloat(p.producto.tipo_cambio)    
-                                }else if(precio != -1 || referencia.indexOf('PROM') != -1){
-                                    if(p.producto.moneda_venta == 0){
-                                        $('.'+row+'.precio').val(precio)
-                                        $('.'+row+'.precio').attr('min', precio)
-                                        precio_venta = parseFloat(precio)
+                                    $.each(p.promociones, function(i,v){
+                                        $('.'+row+'.promocion').append(
+                                            '<option value="'+v.id_promocion+'">'+
+                                                v.descripcion+
+                                            '</option>'
+                                        )
+                                    })
+                                    
+                                    //precio
+                                    if(precio == 0 && referencia.indexOf('PROM') == -1){ //cuando es un campo de promocion pero no tiene precio
+                                        $('.'+row+'.precio').val(p.producto.precio)
+                                        $('.'+row+'.precio').attr('min', p.producto.precio)
+                                        $('.'+row+'.precio').attr('max', p.producto.descuento_maximo)
 
-                                    }else{
-                                        if(descuento.length == 1)
-                                            decto = '.0'+descuento
-                                        else
-                                            decto = '.'+descuento
-
-                                        if(referencia.indexOf('OF') != -1){
+                                    }else if(precio != -1 || referencia.indexOf('PROM') != -1){ //cuando es un campo de promocion 0 tiene precio
+                                        if(p.producto.moneda_venta == 0){
                                             $('.'+row+'.precio').val(precio)
                                             $('.'+row+'.precio').attr('min', p.producto.precio)
-                                            precio_venta = parseFloat(precio) * parseFloat(p.producto.tipo_cambio)    
-                                            
-                                            
-                                        }else{
-                                            precio1 = parseFloat(precio) / (1 - parseFloat(decto))
-                                            precio2 = precio1 / parseFloat(p.producto.tipo_cambio)
+                                            $('.'+row+'.precio').attr('max', p.producto.descuento_maximo)
 
-                                            $('.'+row+'.precio').val(precio2.toFixed(3))
-                                            $('.'+row+'.precio').attr('min', parseFloat(p.producto.precio).toFixed(3))
-                                            precio_venta = parseFloat(precio2) * parseFloat(p.producto.tipo_cambio)
-                                        }                                            
+                                        }else{
+                                            if(descuento.length == 1)
+                                                decto = '.0'+descuento
+                                            else
+                                                decto = '.'+descuento
+
+                                            if(referencia.indexOf('OF') != -1){
+                                                $('.'+row+'.precio').val(precio)
+                                                
+                                                $('.'+row+'.precio').attr('min', p.producto.precio)
+                                                $('.'+row+'.precio').attr('max', p.producto.descuento_maximo)
+                                                
+                                            }else{
+                                                precio1 = parseFloat(precio) / (1 - parseFloat(decto))
+                                                precio2 = precio1 / parseFloat(p.producto.tipo_cambio)
+
+                                                $('.'+row+'.precio').val(precio2.toFixed(3))
+                                                $('.'+row+'.precio').attr('min', parseFloat(p.producto.precio).toFixed(3))
+                                                $('.'+row+'.precio').attr('max', p.producto.descuento_maximo)
+                                            }                                            
+                                        }
+                                        
+                                    }
+
+                                    //moneda de venta y tipo de cambio
+                                    if(p.producto.moneda_venta == 0)
+                                        $('.'+row+'.moneda').html('M.N./1.0000')
+                                    else if(p.producto.moneda_venta == 1)
+                                        $('.'+row+'.moneda').html('USD/'+p.producto.tipo_cambio)
+                                    else if(p.producto.moneda_venta == 2)
+                                        $('.'+row+'.moneda').html('E/'+p.producto.tipo_cambio)
+
+                                    //descuento
+                                    if(descuento == 0){
+                                        $('.'+row+'.descuento').val(0)
+                            
+                                    }else{
+                                        $('.'+row+'.descuento').val(descuento)
+                                        $('.'+row+'.descuento').attr('min', 0)
+                                        $('.'+row+'.descuento').attr('max', descuento)
+                                        $('.'+row+'.descuento').attr('disabled', 'disabled')
                                     }
                                     
+                                    //precion de venta
+                                    precio_venta = obtener_precio_venta(descuento, row)
+
+                                    $('.'+row+'.precio-venta').html(
+                                        '$ '+formatNumber.new(parseFloat(precio_venta).toFixed(2))
+                                    )
+
+                                    //importe
+                                    monto = obtener_monto(descuento, row)
+                                    
+                                    $('.'+row+'.monto').html(
+                                        '$ '+formatNumber.new(parseFloat(monto).toFixed(2))
+                                    )
+
+
+                                    //al seleccionar una promocion
+                                    seleccion_promocion(row, p, referencia, codigo)
+                                
+                                    calcular_totales()
+
+                                    $('.frmFormaPago').css('display', 'inline-block')
+                                    $('.btns').html(
+                                        '<a class="btn btn-primary addProduct">Agregar Producto</a> '
+                                        
+                                    )
+                                    $('.final-form').css('display', 'block')
+
+
+                                    if(p.producto.inventariable == 'V'){
+                                        if(add){
+                                            elimina_fila('.'+row+'.cantidad')  
+                                        }
+                                    }
                                 }
+                            }
 
-                                if(p.producto.moneda_venta == 0)
-                                    $('.'+row+'.moneda').html('M.N./1.0000')
-                                else if(p.producto.moneda_venta == 1)
-                                    $('.'+row+'.moneda').html('USD/'+p.producto.tipo_cambio)
-                                else if(p.producto.moneda_venta == 2)
-                                    $('.'+row+'.moneda').html('E/'+p.producto.tipo_cambio)
+                        }
+                    })
 
-                                if(descuento == 0){
-                                    $('.'+row+'.descuento').val(0)
+                    return prod_existencia
+                }else{
+                    elimina_fila('.'+row)
+                }  
+            }
+            
+            //cuando se selecciona una promocion se agregan o se eliminan la fila dependiendo del tipo de promocion que se seleccione
+            function seleccion_promocion(row, p, referencia, codigo){
+                //al seleccionar una promocion
+                $(document).on('change', '.'+row+'.promocion', function(e){
+                    $(this).parents('tr').removeClass('info')
+                    $(this).parents('tr').removeClass('warning')
+                    $(this).parents('tr').removeClass('danger')
+
+                    promSelected = $(this).val()
+
+                    $.each(p.promociones, function(i, e){
+
+                        if(promSelected == e.id_promocion){
+                            if(e.descuento.length == 1)
+                                decto = '.0'+e.descuento
+                            else
+                                decto = '.'+e.descuento
+
+                            precio1 = parseFloat(e.precio_2) / (1 - parseFloat(decto))
+                            precio2 = precio1 / parseFloat(p.producto.tipo_cambio)
+
+                            min = $('.'+row+'.precio').attr('min')
+                            max = $('.'+row+'.precio').attr('min')
+
+                            if(max > 0){
+                                max_desc = (precio * max) / 100;
+                                precio3 = parseFloat(precio - max)
+                            }else{
+                                //provicionalmente
+                                precio3 = precio2
+                            }
                         
-                                }else{
-                                    $('.'+row+'.descuento').val(descuento)
-                                    $('.'+row+'.descuento').attr('min', 0)
-                                    $('.'+row+'.descuento').attr('max', descuento)
-                                }
-                                                               
+                            if($('.'+row+'.cantidad').val() != ''){
+                                $('.'+row+'.precio').val(precio2.toFixed(3))
+                                $('.'+row+'.precio').attr('min', precio3)
+
+                                $('.'+row+'.descuento').val(e.descuento)
+                                $('.'+row+'.descuento').attr('min', 0)
+                                $('.'+row+'.descuento').attr('max', e.descuento)
+
+                                precio_venta = obtener_precio_venta(e.descuento, row)
                                 $('.'+row+'.precio-venta').html(
                                     '$ '+formatNumber.new(parseFloat(precio_venta).toFixed(2))
                                 )
 
-                                monto = obtener_monto(descuento, row)
+                                monto = obtener_monto(e.descuento, row)
                                 
                                 $('.'+row+'.monto').html(
                                     '$ '+formatNumber.new(parseFloat(monto).toFixed(2))
                                 )
 
-                                //al seleccionar una promocion
-                                $(document).on('change', '.'+row+'.promocion', function(e){
-                                    promSelected = $(this).val()
-
-                                    $.each(p.promociones, function(i, e){
-
-                                        if(promSelected == e.id_promocion){
-                                            if(e.descuento.length == 1)
-                                                decto = '.0'+e.descuento
-                                            else
-                                                decto = '.'+e.descuento
-
-                                            precio1 = parseFloat(e.precio_2) / (1 - parseFloat(decto))
-                                            precio2 = precio1 / parseFloat(p.producto.tipo_cambio)
-
-                                            min = $('.'+row+'.precio').attr('min')
-                                        
-                                            $('.'+row+'.precio').val(precio2.toFixed(3))
-                                            $('.'+row+'.precio').attr('min', p.producto.precio)
-                                            precio_venta = parseFloat(precio2) * parseFloat(p.producto.tipo_cambio)
-
-                                            $('.'+row+'.descuento').val(e.descuento)
-                                            $('.'+row+'.descuento').attr('min', 0)
-                                            $('.'+row+'.descuento').attr('max', e.descuento)
-
-                                            $('.'+row+'.precio-venta').html(
-                                                '$ '+formatNumber.new(parseFloat(precio_venta).toFixed(2))
-                                            )
-
-                                            monto = obtener_monto(e.descuento, row)
-                                            
-                                            $('.'+row+'.monto').html(
-                                                '$ '+formatNumber.new(parseFloat(monto).toFixed(2))
-                                            )
-
-                                            if(e.incluye != '' && e.incluye != ',' && referencia.indexOf('PROM') == -1){
-                                                incluye_producto_promocion(e, row, referencia)
-                                            }else{
-                                                elimina_fila($('.'+row+'.promocion'), codigo)
-                                            }
-                                        
-                                            calcular_totales()
-                                            
-                                                
-                                        }else if(promSelected == ''){
-                                            elimina_fila($('.'+row+'.promocion'), codigo)
-
-                                            $('.'+row+'.precio').val(p.producto.precio)
-                                            $('.'+row+'.precio').attr('min', p.producto.precio)
-
-                                            if(p.producto.moneda_venta == 0)
-                                                precio_venta = parseFloat(p.producto.precio)
-                                            else
-                                                precio_venta = parseFloat(p.producto.precio) * parseFloat(p.producto.tipo_cambio)
-                                            
-                                            $('.'+row+'.descuento').val(0)
-                                            $('.'+row+'.descuento').removeAttr('max')
-
-                                            $('.'+row+'.precio-venta').html(
-                                                '$ '+formatNumber.new(parseFloat(precio_venta).toFixed(2))
-                                            )
-
-                                            monto = obtener_monto(0, row)
-
-                                            $('.'+row+'.monto').html(
-                                                '$ '+formatNumber.new(parseFloat(monto).toFixed(2))
-                                            )
-
-                                            calcular_totales()
-                                        }
-                                    })
-                                })
+                                if(e.incluye != '' && e.incluye != ',' && (referencia.indexOf('PROM') == -1) ){
+                                    incluye_producto_promocion(e, row, referencia)
+                                }else{
+                                    elimina_fila_promocion($('.'+row+'.promocion'), codigo, referencia)
+                                }
                             
                                 calcular_totales()
 
-                                $('.frmFormaPago').css('display', 'inline-block')
-
-                                if(p.producto.inventariable == 'V'){
-                                    if(add){
-                                        elimina_fila($('.'+row+'.cantidad'))  
-                                    }
-                                }
+                                verifica_precios(referencia, row) 
                             }
+                                               
+                        }else if(promSelected == ''){
+                            elimina_fila_promocion($('.'+row+'.promocion'), codigo)
+
+                            $('.'+row+'.precio').val(p.producto.precio)
+                            $('.'+row+'.precio').attr('min', p.producto.precio)
+
+                            descuento = $('.'+row+'.descuento').val(0)
+                            $('.'+row+'.descuento').removeAttr('max')
+                            $('.'+row+'.descuento').removeAttr('disabled')
+
+                            precio_venta = obtener_precio_venta(descuento.val(), row)
+                            $('.'+row+'.precio-venta').html(
+                                '$ '+formatNumber.new(parseFloat(precio_venta).toFixed(2))
+                            )
+
+                            monto = obtener_monto(0, row)
+
+                            $('.'+row+'.monto').html(
+                                '$ '+formatNumber.new(parseFloat(monto).toFixed(2))
+                            )
+
+                            calcular_totales()
                         }
-
-                    }
-
+                    })
                 })
             }
-            
-            function incluye_producto_promocion(element, row, ref){
 
+            //si la promocion incluye un producto lo busca y agrega una nueva fila a la tabla de productos en la vista
+            function incluye_producto_promocion(element, row, ref){
                 incluye = element.incluye.split(',')
                 $.each(incluye, function(i, v){
                     if(v == ''){
@@ -1497,22 +1698,30 @@
                 })
 
                 $.each(incluye, function(i, v){
+                    
                     incluido = v.split('x')
 
                     cod_include = incluido[1]
                     cant_include = incluido[0]
-
-                    num = nvo_num_fila()
-                    nva_fila = 'f'+num;
-
-                    agregar_fila(num)
                     
-                    busca_producto('{!! route('ventas-productos') !!}', 'PROM'+row+element.producto, cod_include, nva_fila, 0, cant_include, 0,'', ref) 
+                    duplicado = promocion_repetida('PROM'+row+element.producto, cod_include)
+
+                    if(!duplicado){
+                        num = nvo_num_fila()
+                        nva_fila = 'f'+num;
+
+                        agregar_fila(num)
+
+                        busca_producto('{!! route('ventas-productos') !!}', 'PROM'+row+element.producto, cod_include, nva_fila, 0, cant_include, 0,'', ref) 
+                    }
+                        
+
                 })
             }
 
+            //verifica que el producto cuente con series disponibles
             function series_disponibles(codigo){
-            	producto = codigo.split(' ')
+                producto = codigo.split(' ')
                 var disponibles;
                 codigo = producto[0]
                 $.ajax({
@@ -1531,9 +1740,10 @@
                 return disponibles
             }
 
+            //obtiene las garantias(dias, impresiones) de cada producto en caso de que requiera series
             function obtener_garantias(codigo){
-            	producto = codigo.split(' ')
-            	codigo = producto[0]
+                producto = codigo.split(' ')
+                codigo = producto[0]
                 var garantia = {
                     dias: 0,
                     copiado: 0
@@ -1587,9 +1797,10 @@
                 return garantia
             }
 
+            //obtiene las series de un producto
             function obtener_series(codigo){
-            	producto = codigo.split(' ')
-            	codigo = producto[0]
+                producto = codigo.split(' ')
+                codigo = producto[0]
                 $.ajax({
                     url: '{!! route('ventas.obtener_series') !!}',
                     method: 'GET',
@@ -1617,6 +1828,7 @@
                 })
             }
 
+            //verifica la clave de autorizacion de precios 
             function verifica_autorizacion(clave){
                 token = $('input[name="_token"]').val()
                 
@@ -1650,7 +1862,9 @@
                 //verificar existan filas en la tabla productos
                 last_row = obtener_ultima_fila()
 
-                if(last_row.codigo == '' && last_row.f == 'f1'){
+                num_fila = $('.frmFactura tbody tr').length;
+
+                if(last_row.codigo == '' && num_fila == 1){
                     alert('No es posible generar la factura.')
                     // datos de factura
                     
@@ -1668,11 +1882,11 @@
                         mov = 1
                     }
 
-
                     factura = {
                         id_factura: $('#folio').val(),
                         //sucursal: se obtiene en el controlador $_SESSION['sucursal']
                         cliente: nvo_cliente,
+                        usoCFDI : $('#usoCFDI').val(),
                         ubicacion: ubicacion,
                         fecha: $('#fecha').val(),
                         //subtotal: $('#subtotal').val(),
@@ -1712,7 +1926,9 @@
                     detalle_factura = new Array()
 
                     $('.frmFactura tbody tr').each(function(index){
-                       
+                       $(this).removeClass('info')
+                       $(this).removeClass('warning')
+                       $(this).removeClass('danger')
                         clase = $(this).attr('class')
                         if(clase.indexOf(' ') != -1){
                             clase = clase.split(' ')
@@ -1724,11 +1940,18 @@
                         $(this).children('td').each(function(index1){
                             switch(index1){
                                 case 1:
+
                                     producto = $(this).children('input[type=text]').val()
+                                    f = obtener_clase($(this).children('input[type=text]'))
+
                                     if(producto.indexOf('-') != -1){
                                         aux_codigo = producto.split(' - ')
                                         producto = aux_codigo[0]
                                     }
+
+                                    con_serie = $(this).children('input[type=hidden]').val()
+                                    comment_showed = []
+                                    buscar_en_comentarios(producto, f)
                                     break
                                 case 2:
                                     cantidad = $(this).children('div').children('input').val()
@@ -1736,6 +1959,8 @@
                                 case 4: 
                                     autoriza = $(this).children('input[type=hidden]').val()
                                     precio = $(this).children('input[type=text]').val()
+                                    min = $(this).children('input[type=text]').attr('min')
+                                    max = $(this).children('input[type=text]').attr('max')
                                     break
                                 case 5:
                                     tipo= $(this).text().split('/')
@@ -1747,6 +1972,35 @@
                             }
                         })
 
+                        errores = 0
+
+                        if(max > 0){
+                            max_desc = (precio * max) / 100;
+                            min = parseFloat(precio - max)
+                        }
+
+                        encontrada = ''
+                        if(con_serie == 'V' && toString(precio) == toString(min)){
+                            encontrada = buscar_series(producto)
+                            if(encontrada.length == 0){
+                                error_series(this)
+                                errores++
+                            }
+
+                        }else if(con_serie == 'F' && parseFloat(precio) < min){
+                            encontrada = buscar_series(producto)
+                            if(encontrada.length == 0){
+                                error_precio(this)
+                                errores++
+                            }
+
+                        }else if(con_serie == 'V' && parseFloat(precio) < min){
+                            encontrada = buscar_series(producto)
+                            if(encontrada.length == 0){
+                                error_serie_precio(this)
+                                errores++
+                            }
+                        }
 
                         detalle = {
                             //id_detalle: automatico??
@@ -1757,51 +2011,132 @@
                             precio: precio,
                             descuento: descuento,
                             tipo_cambio: tipo_cambio,
-                            autoriza: autoriza
+                            autoriza: autoriza,
+                            series: encontrada,
+                            comentarios: comment_showed
 
                         }
                         detalle_factura.push(detalle)
                     })
 
-                    
-                    if($('.formas').children('select').length == 0){
-                        alert('Debe de agregar por lo menos una forma de pago.')
-                    }else{
-                         $('.formas').each(function(){
-                            forma = $(this).children('select').val()
-                            if(forma == ''){
-                                    alert('Debe de seleccionar una forma de pago.')
-                            }else{
-                                factura.forma_pago.push(forma)
+                    if(errores != 0){
+                        alert('Existen algunos errores, corrija e intente nuevamente.')
+                    }else{      
 
+                        $('.inputFormaPago').each(function(i){
+                            inputs = $(this).children('div')
+                            
+                            inputs.children('.formas').each(function(j){
+
+                                add = {
+                                    forma : '',
+                                    importe : 0,
+                                    ref : '',
+                                    cuenta : ''
+
+                                }
                                 
-                            }
+                                forma   = $(this).children('select').val() || ''
+                                importe = inputs.children('.total-formas').eq(j).children('input').val() || ''
+                                ref     = inputs.children('.num-referencia').eq(j).children('input').val() || ''
+                                cuenta  = inputs.children('.num-cuenta').eq(j).children('input').val() || ''
                                 
+                                add.forma = forma
+                                add.importe = importe
+                                add.ref = ref
+                                add.cuenta = cuenta
+                                
+                                factura.forma_pago.push(add)
+                                
+                            })
+                            
                         })
 
+                        
+                        token = $('input[name="_token"]').val()
+                        $.post(
+                            '{{ route('ventas-guardar-factura') }}',
+                            {
+                                _token: token,
+                                factura: factura,
+                                detalle_factura: detalle_factura
+                            },
+                            function(data, textStatus, xhr){
+                                /*console.log(data)                               
+                                var w = window.open('about:blank');
+                                w.document.open()
+                                w.document.write(data)
+                                w.document.close()
+                                */
+                            }
+                        ).done(function(data){
+                            console.log(data)
+                            if(data == 'recarga'){
+                                /*
+                                $.ajax({
+                                    url : 'http://www.decop.com/pruebas/interno/AI_Plantilla.php',
+                                    method : 'GET',
+                                    dataType: 'html',
+                                    data: {
+                                        destino:'AI_Genera_CFDI.php',
+                                        id_factura: $('#folio').val(),
+                                        origen: 'intranet'
+                                    },
+                                    success:function(data){
+
+                                    }
+                                }).done(function(){
+                                    location.reload(true);
+                                })*/
+
+                                location.reload(true);
+                            }
+                                
+                        });
                     }
 
-                    token = $('input[name="_token"]').val()
-                    $.post(
-                        '{{ route('ventas-guardar-factura') }}',
-                        {
-                            _token: token,
-                            factura: factura,
-                            detalle_factura, detalle_factura
-                        },
-                        function(data){
-                            var w = window.open('about:blank');
-                            w.document.open()
-                            w.document.write(data)
-                            w.document.close()
-                        }
-                    )
-                    
                 }
             }
 
-            
+            $(document).on('focus', '.num_cuenta', function(){
+                cliente = cliente.split(' - ')
+                cliente = $.trim(cliente[0])
 
+                campo = $(this)
+
+                $(this).autocomplete({
+                    source: function(request, response){   
+                        $.ajax({
+                            url: "{!! route('cuentas-cliente') !!}",
+                            method: 'GET',
+                            datatype: 'xml',
+                            data: {
+                                cliente: cliente
+                            },
+                            success: function(c, textStatus, xhr){
+                                response(c);
+                                
+                            }
+                        }).fail(function( jqXHR, textStatus ) { //si la consulta falla se agrega el numero de cuenta del cliente
+                            console.log(campo)
+                            fp = fila_forma_pago(campo)
+                            cuenta = $('.num_cuenta.'+fp).val()
+                            if(cuenta != ''){
+
+                                console.log(cliente, cuenta)
+                            }
+                        })
+                    },
+                    minLength: 0,
+                    select: function(event, ui){
+                        valor_mayor()
+                    }
+                }).focus(function(){
+                    $(this).autocomplete("search")
+
+                    valor_mayor()
+                })
+            })
     </script>
    
 @endsection
